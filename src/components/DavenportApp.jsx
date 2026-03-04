@@ -315,10 +315,11 @@ function HomePage({ setPage, isMobile, isTablet, pagePad }) {
 }
 
 // ─── BROWSE ───────────────────────────────────────────────────────────────────
-function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad, preselectedStyle, onPrefillConsumed }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad, preselectedStyle, preselectedStyles, onPrefillConsumed }) {
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
+  const [multiStyleFilter,setMultiStyleFilter]=useState(null);
 
   const condOrder = ["Like New","Good","Fair"];
   const occasions  = ["All",...new Set(ITEMS.map(i=>i.occasion))];
@@ -327,14 +328,22 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, page
   const categories = ["All",...new Set(ITEMS.map(i=>i.category))];
 
   useEffect(() => {
+    if (preselectedStyles && preselectedStyles.length > 0) {
+      setMultiStyleFilter([...new Set(preselectedStyles)]);
+      setFilters(f => ({ ...f, style:"All" }));
+      if (onPrefillConsumed) onPrefillConsumed();
+      return;
+    }
     if (preselectedStyle) {
+      setMultiStyleFilter(null);
       setFilters(f => ({ ...f, style: preselectedStyle }));
       if (onPrefillConsumed) onPrefillConsumed();
     }
-  }, [preselectedStyle, onPrefillConsumed]);
+  }, [preselectedStyle, preselectedStyles, onPrefillConsumed]);
 
   const filtered = ITEMS
     .filter(i=>!newOnly||i.condition==="Like New")
+    .filter(i=>!multiStyleFilter||multiStyleFilter.includes(i.style))
     .filter(i=>filters.occasion==="All"||i.occasion===filters.occasion)
     .filter(i=>filters.style==="All"||i.style===filters.style)
     .filter(i=>filters.season==="All"||i.season===filters.season)
@@ -372,7 +381,10 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, page
             <div key={key} style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" }}>
               <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,width:68,flexShrink:0 }}>{label}</span>
               <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
-                {opts.map(o=>pill(o,filters[key]===o,()=>setFilters(f=>({...f,[key]:o}))))}
+                {opts.map(o=>pill(o,filters[key]===o,()=>{
+                  if (key==="style") setMultiStyleFilter(null);
+                  setFilters(f=>({...f,[key]:o}));
+                }))}
               </div>
             </div>
           ))}
@@ -385,6 +397,11 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, page
             </select>
           </div>
         </div>
+        {multiStyleFilter && (
+          <p style={{ fontFamily:S.sans,fontSize:11,color:S.muted,marginTop:14,fontStyle:"italic" }}>
+            Showing items for your liked styles: {multiStyleFilter.join(", ")}
+          </p>
+        )}
         <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,marginTop:16 }}>{filtered.length} piece{filtered.length!==1?"s":""} found</p>
       </div>
 
@@ -497,112 +514,142 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, isMobile, is
 }
 
 // ─── QUIZ ─────────────────────────────────────────────────────────────────────
-function QuizPage({ setPage, isMobile, isTablet, pagePad }) {
-  const [activeStyle, setActiveStyle] = useState(null);
-  const [slideIndex, setSlideIndex] = useState(0);
+function QuizPage({ setPage, setStyleProfile, isMobile, pagePad }) {
+  const [styleIndex,setStyleIndex]=useState(0);
+  const [photoIndexByStyle,setPhotoIndexByStyle]=useState({});
+  const [likedStyles,setLikedStyles]=useState([]);
+  const [animDir,setAnimDir]=useState(null);
+  const [touchStartX,setTouchStartX]=useState(null);
 
-  const activeItems = activeStyle ? ITEMS.filter(i => i.style === activeStyle.filterStyle).slice(0, 4) : [];
-  const currentItem = activeItems[slideIndex] || null;
+  const styleDeck = SWIPE_ITEMS.map(card => ({
+    ...card,
+    photos: ITEMS.filter(i => i.style === card.filterStyle),
+  })).filter(card => card.photos.length > 0);
 
-  function openStyle(styleCard) {
-    setActiveStyle(styleCard);
-    setSlideIndex(0);
+  const done = styleIndex >= styleDeck.length;
+  const currentStyle = done ? null : styleDeck[styleIndex];
+  const currentPhotoIndex = currentStyle ? (photoIndexByStyle[currentStyle.id] || 0) : 0;
+  const currentItem = currentStyle ? currentStyle.photos[currentPhotoIndex] : null;
+
+  function setPhotoIndex(styleId, nextIndex) {
+    setPhotoIndexByStyle(prev => ({ ...prev, [styleId]: nextIndex }));
   }
 
-  function closeModal() {
-    setActiveStyle(null);
-    setSlideIndex(0);
+  function prevPhoto() {
+    if (!currentStyle) return;
+    const total = currentStyle.photos.length;
+    setPhotoIndex(currentStyle.id, (currentPhotoIndex - 1 + total) % total);
   }
 
-  function prevSlide() {
-    if (!activeItems.length) return;
-    setSlideIndex(i => (i - 1 + activeItems.length) % activeItems.length);
+  function nextPhoto() {
+    if (!currentStyle) return;
+    const total = currentStyle.photos.length;
+    setPhotoIndex(currentStyle.id, (currentPhotoIndex + 1) % total);
   }
 
-  function nextSlide() {
-    if (!activeItems.length) return;
-    setSlideIndex(i => (i + 1) % activeItems.length);
+  function chooseStyle(liked) {
+    if (!currentStyle) return;
+    setAnimDir(liked ? "right" : "left");
+    setTimeout(() => {
+      let nextLiked = likedStyles;
+      if (liked && !likedStyles.includes(currentStyle.filterStyle)) {
+        nextLiked = [...likedStyles, currentStyle.filterStyle];
+        setLikedStyles(nextLiked);
+        setStyleProfile(nextLiked);
+      }
+      setStyleIndex(i => i + 1);
+      setAnimDir(null);
+    }, 220);
   }
 
-  function shopThisStyle() {
-    if (!activeStyle) return;
-    const selected = activeStyle.filterStyle;
-    closeModal();
-    setPage("browse", { style: selected });
+  function onCardTouchStart(e) {
+    setTouchStartX(e.changedTouches[0].clientX);
   }
 
-  useEffect(() => {
-    if (!activeStyle) return;
-    function onKeyDown(e) {
-      if (e.key === "Escape") closeModal();
-      if (e.key === "ArrowLeft") prevSlide();
-      if (e.key === "ArrowRight") nextSlide();
+  function onCardTouchEnd(e) {
+    if (touchStartX == null) return;
+    const endX = e.changedTouches[0].clientX;
+    const dx = endX - touchStartX;
+    if (Math.abs(dx) > 60) {
+      chooseStyle(dx > 0);
+      setTouchStartX(null);
+      return;
     }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [activeStyle, activeItems.length]);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tapX = endX - rect.left;
+    if (tapX < rect.width / 2) prevPhoto();
+    else nextPhoto();
+    setTouchStartX(null);
+  }
 
-  return (
-    <div style={{ paddingTop:60,minHeight:"100vh",background:"#05070b",position:"relative",overflow:"hidden" }}>
-      <div style={{ position:"absolute",inset:0,background:"radial-gradient(70% 55% at 50% 10%, rgba(23,33,58,0.7) 0%, rgba(5,7,11,0.96) 62%, rgba(5,7,11,1) 100%)" }} />
-      <div style={{ position:"relative",zIndex:1,maxWidth:1120,margin:"0 auto",padding:`${isMobile?72:84}px ${pagePad}px ${isMobile?64:86}px` }}>
-        <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6f5d47",marginBottom:14,textAlign:"center" }}>Style Discovery</p>
-        <h1 style={{ fontFamily:S.serif,fontSize:isMobile?42:56,fontWeight:600,color:"#f3f4f6",letterSpacing:"-1px",marginBottom:12,textAlign:"center" }}>Find your style direction.</h1>
-        <p style={{ fontFamily:S.sans,fontSize:isMobile?14:16,color:"#94a3b8",marginBottom:40,textAlign:"center" }}>Tap a card to preview real pieces in that style.</p>
-
-        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4, minmax(0, 1fr))",gap:16 }}>
-          {SWIPE_ITEMS.map(card=>(
-            <button key={card.id} onClick={()=>openStyle(card)} style={{ position:"relative",cursor:"pointer",border:"1px solid #1f2937",background:"#0b1220",aspectRatio:"3 / 4",padding:0,overflow:"hidden",textAlign:"left" }}>
-              <div style={{ position:"absolute",inset:0,backgroundImage: card.image ? `url(${card.image})` : "linear-gradient(155deg, #0f172a 0%, #111827 45%, #1f2937 100%)",backgroundSize:"cover",backgroundPosition:"center" }} />
-              <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top, rgba(0,0,0,0.8) 8%, rgba(0,0,0,0.25) 56%, rgba(0,0,0,0.45) 100%)" }} />
-              <div style={{ position:"relative",zIndex:1,height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between",padding:16 }}>
-                <div style={{ fontSize:28,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.45))" }}>{card.emoji}</div>
-                <div>
-                  <h3 style={{ fontFamily:S.serif,fontSize:26,fontWeight:600,color:"#f8fafc",lineHeight:1.02,marginBottom:8 }}>{card.label}</h3>
-                  <p style={{ fontFamily:S.sans,fontSize:12,color:"rgba(226,232,240,0.88)",lineHeight:1.5 }}>{card.desc}</p>
-                </div>
-              </div>
-            </button>
-          ))}
+  if (done) {
+    return (
+      <div style={{ paddingTop:60,minHeight:"100vh",background:"#05070b",position:"relative",overflow:"hidden" }}>
+        <div style={{ position:"absolute",inset:0,background:"radial-gradient(70% 55% at 50% 10%, rgba(23,33,58,0.7) 0%, rgba(5,7,11,0.96) 62%, rgba(5,7,11,1) 100%)" }} />
+        <div style={{ position:"relative",zIndex:1,maxWidth:760,margin:"0 auto",padding:`${isMobile?88:110}px ${pagePad}px`,textAlign:"center" }}>
+          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6f5d47",marginBottom:16 }}>Style Profile Complete</p>
+          <h1 style={{ fontFamily:S.serif,fontSize:isMobile?42:56,fontWeight:600,color:"#f8fafc",letterSpacing:"-1px",marginBottom:14 }}>We got your taste.</h1>
+          <p style={{ fontFamily:S.sans,fontSize:15,color:"#94a3b8",marginBottom:32 }}>
+            {likedStyles.length > 0 ? `Liked styles: ${likedStyles.join(", ")}` : "No styles liked yet. You can still browse everything."}
+          </p>
+          <button onClick={()=>setPage("browse", likedStyles.length ? { styles: likedStyles } : {})} style={{ background:S.gold,color:"#111827",border:"none",cursor:"pointer",padding:"14px 28px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
+            Shop Your Styles
+          </button>
         </div>
       </div>
+    );
+  }
 
-      {activeStyle && currentItem && (
-        <div style={{ position:"fixed",inset:0,zIndex:420,background:"rgba(3,6,12,0.95)",display:"flex",alignItems:"center",justifyContent:"center",padding:`${isMobile?16:28}px` }}>
-          <button onClick={closeModal} style={{ position:"absolute",top:18,right:18,width:42,height:42,border:"1px solid #374151",background:"rgba(15,23,42,0.8)",color:"#e5e7eb",cursor:"pointer",fontSize:20 }}>✕</button>
-          <button onClick={prevSlide} style={{ position:"absolute",left:isMobile?10:26,top:"50%",transform:"translateY(-50%)",width:46,height:46,border:"1px solid #374151",background:"rgba(15,23,42,0.75)",color:"#e5e7eb",cursor:"pointer",fontSize:24 }}>‹</button>
-          <button onClick={nextSlide} style={{ position:"absolute",right:isMobile?10:26,top:"50%",transform:"translateY(-50%)",width:46,height:46,border:"1px solid #374151",background:"rgba(15,23,42,0.75)",color:"#e5e7eb",cursor:"pointer",fontSize:24 }}>›</button>
+  return (
+    <div style={{ paddingTop:60,minHeight:"100vh",background:"#05070b",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center" }}>
+      <div style={{ position:"absolute",inset:0,background:"radial-gradient(70% 55% at 50% 10%, rgba(23,33,58,0.7) 0%, rgba(5,7,11,0.96) 62%, rgba(5,7,11,1) 100%)" }} />
+      <div style={{ position:"relative",zIndex:1,width:"100%",maxWidth:560,padding:`0 ${pagePad}px`,display:"flex",flexDirection:"column",alignItems:"center" }}>
+        <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6f5d47",marginBottom:10 }}>Style Discovery</p>
+        <h1 style={{ fontFamily:S.serif,fontSize:isMobile?40:52,fontWeight:600,color:"#f8fafc",letterSpacing:"-1px",marginBottom:8,textAlign:"center" }}>{currentStyle.label}</h1>
+        <p style={{ fontFamily:S.sans,fontSize:13,color:"#94a3b8",marginBottom:24 }}>{styleIndex+1} of {styleDeck.length}</p>
 
-          <div style={{ width:"100%",maxWidth:980,border:"1px solid #1f2937",background:"#0b1220",display:"grid",gridTemplateColumns:isMobile?"1fr":"1.2fr 1fr",overflow:"hidden" }}>
-            <div style={{ minHeight:isMobile?280:460,background:`linear-gradient(145deg, ${currentItem.color}, #0f172a)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative" }}>
-              <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top, rgba(2,6,23,0.75), rgba(2,6,23,0.15))" }} />
-              <div style={{ position:"relative",zIndex:1,textAlign:"center" }}>
-                <div style={{ fontSize:isMobile?88:130,marginBottom:12 }}>{currentItem.emoji}</div>
-                <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:"#cbd5e1" }}>{currentItem.category}</p>
-              </div>
-            </div>
-            <div style={{ padding:isMobile?"24px 18px":"30px 28px",display:"flex",flexDirection:"column" }}>
-              <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:"#64748b",marginBottom:8 }}>{activeStyle.label}</p>
-              <h2 style={{ fontFamily:S.serif,fontSize:isMobile?34:44,color:"#f8fafc",fontWeight:600,letterSpacing:"-0.8px",marginBottom:14,lineHeight:1 }}>{currentItem.name}</h2>
-              <p style={{ fontFamily:S.sans,fontSize:13,color:"#cbd5e1",marginBottom:4 }}>{currentItem.brand}</p>
-              <p style={{ fontFamily:S.serif,fontSize:28,color:"#f8fafc",fontWeight:700,marginBottom:14 }}>${getMonthlyPrice(currentItem)}<span style={{ fontFamily:S.sans,fontSize:11,color:"#94a3b8" }}>/mo</span></p>
-              <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18 }}>
-                <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:"#94a3b8" }}>Color</span>
-                <span style={{ width:18,height:18,background:currentItem.color,border:"1px solid #334155",display:"inline-block" }} />
-              </div>
-              <p style={{ fontFamily:S.sans,fontSize:13,color:"#9ca3af",lineHeight:1.7,marginBottom:24 }}>{currentItem.description}</p>
-              <div style={{ display:"flex",gap:8,marginBottom:18 }}>
-                {activeItems.map((item, idx)=>(
-                  <button key={item.id} onClick={()=>setSlideIndex(idx)} style={{ width:9,height:9,borderRadius:"50%",border:"none",cursor:"pointer",background:idx===slideIndex?S.gold:"#334155" }} />
-                ))}
-              </div>
-              <button onClick={shopThisStyle} style={{ marginTop:"auto",background:S.gold,color:"#111827",border:"none",cursor:"pointer",padding:"14px 18px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
-                Shop This Style
-              </button>
-            </div>
+        <div
+          onTouchStart={onCardTouchStart}
+          onTouchEnd={onCardTouchEnd}
+          style={{
+            width:"100%",
+            maxWidth:380,
+            aspectRatio:"3 / 4",
+            position:"relative",
+            overflow:"hidden",
+            border:"1px solid #1f2937",
+            background:currentItem.color,
+            transform:animDir==="left"?"translateX(-120px) rotate(-6deg)":animDir==="right"?"translateX(120px) rotate(6deg)":"none",
+            opacity:animDir?0:1,
+            transition:"transform 0.22s,opacity 0.22s",
+            touchAction:"pan-y"
+          }}
+        >
+          <div style={{ position:"absolute",left:10,right:10,top:10,display:"flex",gap:6,zIndex:3 }}>
+            {currentStyle.photos.map((item,idx)=>(
+              <div key={item.id} style={{ flex:1,height:3,background:idx<=currentPhotoIndex?"rgba(250,250,250,0.95)":"rgba(250,250,250,0.3)" }} />
+            ))}
+          </div>
+
+          <div onClick={prevPhoto} style={{ position:"absolute",left:0,top:0,bottom:0,width:"50%",zIndex:2,cursor:"pointer" }} />
+          <div onClick={nextPhoto} style={{ position:"absolute",right:0,top:0,bottom:0,width:"50%",zIndex:2,cursor:"pointer" }} />
+
+          <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top, rgba(0,0,0,0.78) 8%, rgba(0,0,0,0.2) 55%, rgba(0,0,0,0.35) 100%)",zIndex:1 }} />
+          <div style={{ position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1 }}>
+            <div style={{ fontSize:isMobile?112:132,filter:"drop-shadow(0 8px 26px rgba(0,0,0,0.36))" }}>{currentItem.emoji}</div>
+          </div>
+          <div style={{ position:"absolute",left:16,right:16,bottom:16,zIndex:3 }}>
+            <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:"rgba(255,255,255,0.8)",marginBottom:6 }}>{currentItem.brand}</p>
+            <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:"#f8fafc",lineHeight:0.98,marginBottom:6 }}>{currentItem.name}</h2>
+            <p style={{ fontFamily:S.sans,fontSize:12,color:"rgba(255,255,255,0.88)" }}>{currentStyle.desc}</p>
           </div>
         </div>
-      )}
+
+        <div style={{ display:"flex",gap:24,marginTop:28 }}>
+          <button onClick={()=>chooseStyle(false)} style={{ width:64,height:64,borderRadius:"50%",background:"#1f2937",border:"1px solid #374151",cursor:"pointer",fontSize:22,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
+          <button onClick={()=>chooseStyle(true)} style={{ width:64,height:64,borderRadius:"50%",background:S.gold,border:"none",cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center" }}>♥</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1005,7 +1052,9 @@ function Footer({ setPage, isMobile, pagePad }) {
 export default function App() {
   const [page,setPage]=useState("home");
   const [suitcase,setSuitcase]=useState([]);
+  const [,setStyleProfile]=useState([]);
   const [browseStylePrefill,setBrowseStylePrefill]=useState(null);
+  const [browseStylesPrefill,setBrowseStylesPrefill]=useState(null);
   const { width } = useWindowSize();
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
@@ -1015,8 +1064,13 @@ export default function App() {
   function removeFromSuitcase(id){ setSuitcase(s=>s.filter(i=>i.id!==id)); }
 
   function nav(p, options = {}){
-    if (p === "browse" && options.style) setBrowseStylePrefill(options.style);
-    if (p !== "browse" || !options.style) setBrowseStylePrefill(null);
+    if (p === "browse") {
+      setBrowseStylePrefill(options.style || null);
+      setBrowseStylesPrefill(options.styles || null);
+    } else {
+      setBrowseStylePrefill(null);
+      setBrowseStylesPrefill(null);
+    }
     if(p==="signup"){ setPage("auth-signup"); window.scrollTo(0,0); return; }
     if(p==="login"){  setPage("auth-login");  window.scrollTo(0,0); return; }
     setPage(p); window.scrollTo(0,0);
@@ -1024,8 +1078,8 @@ export default function App() {
 
   function render(){
     if(page==="home")          return <HomePage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
-    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad} preselectedStyle={browseStylePrefill} onPrefillConsumed={()=>setBrowseStylePrefill(null)}/>;
-    if(page==="quiz")          return <QuizPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad} preselectedStyle={browseStylePrefill} preselectedStyles={browseStylesPrefill} onPrefillConsumed={()=>{setBrowseStylePrefill(null); setBrowseStylesPrefill(null);}}/>;
+    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="community")     return <CommunityPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="sustainability") return <SustainabilityPage isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
