@@ -647,6 +647,15 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
               {cardToast}
             </div>
           )}
+          <button
+            onClick={likePiece}
+            onTouchStart={e=>e.stopPropagation()}
+            onTouchEnd={e=>e.stopPropagation()}
+            aria-label="Add this piece to suitcase"
+            style={{ position:"absolute",right:12,top:12,zIndex:4,width:30,height:30,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.28)",background:"rgba(2,6,23,0.48)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,lineHeight:1,color:currentItemInSuitcase?"#22c55e":"#f8fafc",fontWeight:600 }}
+          >
+            +
+          </button>
           <div style={{ position:"absolute",left:10,right:10,top:10,display:"flex",gap:6,zIndex:3 }}>
             {currentStyle.photos.map((item,idx)=>(
               <div key={item.id} style={{ flex:1,height:3,background:idx<=currentPhotoIndex?"rgba(250,250,250,0.95)":"rgba(250,250,250,0.3)" }} />
@@ -665,15 +674,6 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
             <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:"#f8fafc",lineHeight:0.98,marginBottom:6 }}>{currentItem.name}</h2>
             <p style={{ fontFamily:S.sans,fontSize:12,color:"rgba(255,255,255,0.88)" }}>{currentStyle.desc}</p>
           </div>
-          <button
-            onClick={likePiece}
-            onTouchStart={e=>e.stopPropagation()}
-            onTouchEnd={e=>e.stopPropagation()}
-            aria-label="Like this piece"
-            style={{ position:"absolute",right:14,bottom:14,zIndex:4,width:34,height:34,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.28)",background:"rgba(2,6,23,0.48)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:currentItemInSuitcase?"#ef4444":"#f8fafc" }}
-          >
-            {currentItemInSuitcase ? "♥" : "♡"}
-          </button>
         </div>
 
         <div style={{ display:"flex",gap:24,marginTop:28 }}>
