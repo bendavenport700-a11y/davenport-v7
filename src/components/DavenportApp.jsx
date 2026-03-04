@@ -86,13 +86,13 @@ const ITEMS = [
 ];
 
 const SWIPE_ITEMS = [
-  { id:"s1", label:"Clean & Minimal",  emoji:"⬜", desc:"White tees, slim cuts, nothing loud" },
+  { id:"s1", label:"Clean & Minimal",  emoji:"⬜", desc:"White tees, slim cuts, nothing loud", image:"/style-minimal-tee.png" },
   { id:"s2", label:"Streetwear Edge",  emoji:"🖤", desc:"Oversized fits, cargo, bold silhouettes" },
-  { id:"s3", label:"Collegiate Prep",  emoji:"🏛️", desc:"Oxford shirts, chinos, rugby stripes" },
+  { id:"s3", label:"Collegiate Prep",  emoji:"🏛️", desc:"Oxford shirts, chinos, rugby stripes", image:"/style-navy-crew.png" },
   { id:"s4", label:"Sharp Business",   emoji:"💼", desc:"Blazers, dress shirts, leather shoes" },
   { id:"s5", label:"Weekend Casual",   emoji:"🌿", desc:"Linen, cargo, relaxed everything" },
   { id:"s6", label:"Going Out Fits",   emoji:"🌙", desc:"Dark tones, structure, heads turning" },
-  { id:"s7", label:"Earth Tones",      emoji:"🍂", desc:"Camel, olive, stone warm palette" },
+  { id:"s7", label:"Earth Tones",      emoji:"🍂", desc:"Camel, olive, stone warm palette", image:"/style-stone-chinos.png" },
   { id:"s8", label:"Monochrome",       emoji:"◾", desc:"Black, white, grey. Nothing in between" },
 ];
 
@@ -555,10 +555,29 @@ function QuizPage({ setPage, setStyleProfile, isMobile, isTablet, pagePad }) {
       <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:12 }}>Style Discovery</p>
       <h1 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,color:S.cream,letterSpacing:"-1px",marginBottom:8 }}>What speaks to you?</h1>
       <p style={{ fontFamily:S.sans,fontSize:14,color:"#6b7280",marginBottom:52 }}>{index+1} of {SWIPE_ITEMS.length}</p>
-      <div style={{ width:isMobile?`min(340px, calc(100vw - ${pagePad * 2}px))`:340,background:"#fff",border:"1px solid #1f2937",padding:isMobile?"40px 24px":"52px 40px",textAlign:"center",transition:"transform 0.28s,opacity 0.28s",transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none",opacity:animDir?0:1 }}>
-        <div style={{ fontSize:64,marginBottom:24 }}>{current.emoji}</div>
-        <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:S.ink,marginBottom:10 }}>{current.label}</h2>
-        <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted }}>{current.desc}</p>
+      <div
+        style={{
+          width:isMobile?`min(340px, calc(100vw - ${pagePad * 2}px))`:340,
+          border:"1px solid #1f2937",
+          padding:isMobile?"40px 24px":"52px 40px",
+          textAlign:"center",
+          transition:"transform 0.28s,opacity 0.28s",
+          transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none",
+          opacity:animDir?0:1,
+          position:"relative",
+          overflow:"hidden",
+          backgroundColor:"#fff",
+          backgroundImage: current.image ? `url(${current.image})` : "linear-gradient(135deg, #1f2937, #111827)",
+          backgroundSize:"cover",
+          backgroundPosition:"center"
+        }}
+      >
+        <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.32)" }} />
+        <div style={{ position:"relative", zIndex:1 }}>
+          <div style={{ fontSize:64,marginBottom:24,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.45))" }}>{current.emoji}</div>
+          <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:"#fff",marginBottom:10 }}>{current.label}</h2>
+          <p style={{ fontFamily:S.sans,fontSize:14,color:"rgba(255,255,255,0.9)" }}>{current.desc}</p>
+        </div>
       </div>
       <div style={{ display:"flex",gap:24,marginTop:44 }}>
         <button onClick={()=>swipe("left")}  style={{ width:64,height:64,borderRadius:"50%",background:"#1f2937",border:"1px solid #374151",cursor:"pointer",fontSize:22,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
