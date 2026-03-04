@@ -140,7 +140,7 @@ function HomePage({ setPage }) {
       {/* Hero */}
       <section style={{ minHeight:"100vh",display:"flex",flexDirection:"column",justifyContent:"center",padding:"80px 40px 60px",background:`linear-gradient(150deg, ${S.cream} 0%, #ede8e1 60%, #e0d9cf 100%)`,position:"relative",overflow:"hidden" }}>
         <div style={{ position:"absolute",right:0,top:0,bottom:0,width:"40%",background:"linear-gradient(160deg, #e8e1d8, #d4ccc2)",display:"flex",alignItems:"center",justifyContent:"center" }}>
-          <div style={{ opacity:0.1,fontFamily:S.serif,fontSize:220,fontWeight:700,color:S.ink,lineHeight:1,userSelect:"none" }}>D</div>
+          <img src="/logo.png" alt="" aria-hidden="true" style={{ opacity:0.1,width:220,height:220,objectFit:"contain",userSelect:"none" }}/>
         </div>
         <div style={{ maxWidth:640,position:"relative",zIndex:1 }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.22em",textTransform:"uppercase",color:S.tan,marginBottom:28,fontWeight:500 }}>Better clothes. Less effort.</p>
