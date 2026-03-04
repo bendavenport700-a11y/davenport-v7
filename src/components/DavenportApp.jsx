@@ -518,6 +518,7 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
   const [styleIndex,setStyleIndex]=useState(0);
   const [photoIndexByStyle,setPhotoIndexByStyle]=useState({});
   const [likedStyles,setLikedStyles]=useState([]);
+  const [vibeLikedItems,setVibeLikedItems]=useState({});
   const [animDir,setAnimDir]=useState(null);
   const [touchStartX,setTouchStartX]=useState(null);
   const [cardToast,setCardToast]=useState("");
@@ -532,6 +533,7 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
   const currentPhotoIndex = currentStyle ? (photoIndexByStyle[currentStyle.id] || 0) : 0;
   const currentItem = currentStyle ? currentStyle.photos[currentPhotoIndex] : null;
   const currentItemInSuitcase = currentItem ? suitcase.some(s=>s.id===currentItem.id) : false;
+  const currentItemVibeLiked = currentItem ? !!vibeLikedItems[currentItem.id] : false;
 
   function setPhotoIndex(styleId, nextIndex) {
     setPhotoIndexByStyle(prev => ({ ...prev, [styleId]: nextIndex }));
@@ -573,6 +575,12 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
     }
   }
 
+  function likeVibe(e) {
+    if (!currentItem) return;
+    e.stopPropagation();
+    setVibeLikedItems(prev => ({ ...prev, [currentItem.id]: !prev[currentItem.id] }));
+  }
+
   useEffect(() => {
     if (!cardToast) return;
     const t = setTimeout(() => setCardToast(""), 1500);
@@ -609,7 +617,7 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
           <p style={{ fontFamily:S.sans,fontSize:15,color:"#94a3b8",marginBottom:32 }}>
             {likedStyles.length > 0 ? `Liked styles: ${likedStyles.join(", ")}` : "No styles liked yet. You can still browse everything."}
           </p>
-          <button onClick={()=>setPage("browse", likedStyles.length ? { styles: likedStyles } : {})} style={{ background:S.gold,color:"#111827",border:"none",cursor:"pointer",padding:"14px 28px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
+          <button onClick={()=>setPage("style-results", { styles: likedStyles })} style={{ background:S.gold,color:"#111827",border:"none",cursor:"pointer",padding:"14px 28px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
             Shop Your Styles
           </button>
         </div>
@@ -648,11 +656,20 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
             </div>
           )}
           <button
+            onClick={likeVibe}
+            onTouchStart={e=>e.stopPropagation()}
+            onTouchEnd={e=>e.stopPropagation()}
+            aria-label="Like this vibe"
+            style={{ position:"absolute",left:14,top:16,zIndex:4,width:32,height:32,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.28)",background:"rgba(2,6,23,0.48)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,lineHeight:1,color:currentItemVibeLiked?"#f59e0b":"#f8fafc",fontWeight:700 }}
+          >
+            👍
+          </button>
+          <button
             onClick={likePiece}
             onTouchStart={e=>e.stopPropagation()}
             onTouchEnd={e=>e.stopPropagation()}
             aria-label="Add this piece to suitcase"
-            style={{ position:"absolute",right:12,top:12,zIndex:4,width:30,height:30,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.28)",background:"rgba(2,6,23,0.48)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,lineHeight:1,color:currentItemInSuitcase?"#22c55e":"#f8fafc",fontWeight:600 }}
+            style={{ position:"absolute",right:14,top:16,zIndex:4,width:32,height:32,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.28)",background:"rgba(2,6,23,0.48)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,lineHeight:1,color:currentItemInSuitcase?"#22c55e":"#f8fafc",fontWeight:600 }}
           >
             +
           </button>
@@ -680,6 +697,45 @@ function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile,
           <button onClick={()=>chooseStyle(false)} style={{ width:64,height:64,borderRadius:"50%",background:"#1f2937",border:"1px solid #374151",cursor:"pointer",fontSize:22,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
           <button onClick={()=>chooseStyle(true)} style={{ width:64,height:64,borderRadius:"50%",background:S.gold,border:"none",cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center" }}>♥</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StyleResultsPage({ styles, setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad }) {
+  const uniqueStyles = [...new Set((styles || []).filter(Boolean))];
+  const matched = uniqueStyles.length ? ITEMS.filter(i=>uniqueStyles.includes(i.style)) : [];
+
+  return (
+    <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
+      <div style={{ padding:`52px ${pagePad}px 36px`,background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
+        <div style={{ maxWidth:1080,margin:"0 auto" }}>
+          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>Your Style Profile</p>
+          <h1 style={{ fontFamily:S.serif,fontSize:isMobile?36:48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom:12 }}>Your Style Profile</h1>
+          <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted,marginBottom:8 }}>
+            {uniqueStyles.length ? uniqueStyles.join(" · ") : "No styles selected yet"}
+          </p>
+          <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted }}>
+            {matched.length} piece{matched.length!==1?"s":""} matched
+          </p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth:1080,margin:"0 auto",padding:`36px ${pagePad}px 80px` }}>
+        {matched.length>0 ? (
+          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"repeat(2, minmax(0, 1fr))":"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
+            {matched.map(item=>(
+              <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)}/>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background:"#fff",border:`1px solid ${S.stone}`,padding:"30px 24px",textAlign:"center" }}>
+            <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted,marginBottom:16 }}>No style likes yet. Take the quiz and heart styles to build your profile.</p>
+            <button onClick={()=>setPage("quiz")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"12px 24px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase" }}>
+              Retake Quiz
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1086,6 +1142,7 @@ export default function App() {
   const [,setStyleProfile]=useState([]);
   const [browseStylePrefill,setBrowseStylePrefill]=useState(null);
   const [browseStylesPrefill,setBrowseStylesPrefill]=useState(null);
+  const [profileStyles,setProfileStyles]=useState([]);
   const { width } = useWindowSize();
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
@@ -1102,6 +1159,7 @@ export default function App() {
       setBrowseStylePrefill(null);
       setBrowseStylesPrefill(null);
     }
+    if (p === "style-results") setProfileStyles(options.styles || []);
     if(p==="signup"){ setPage("auth-signup"); window.scrollTo(0,0); return; }
     if(p==="login"){  setPage("auth-login");  window.scrollTo(0,0); return; }
     setPage(p); window.scrollTo(0,0);
@@ -1111,6 +1169,7 @@ export default function App() {
     if(page==="home")          return <HomePage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad} preselectedStyle={browseStylePrefill} preselectedStyles={browseStylesPrefill} onPrefillConsumed={()=>{setBrowseStylePrefill(null); setBrowseStylesPrefill(null);}}/>;
     if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile} suitcase={suitcase} addToSuitcase={addToSuitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="style-results") return <StyleResultsPage styles={profileStyles} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="community")     return <CommunityPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="sustainability") return <SustainabilityPage isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
