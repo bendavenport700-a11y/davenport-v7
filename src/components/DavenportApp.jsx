@@ -37,6 +37,21 @@ function getWearRange(count) {
   return "30+ wears";
 }
 
+function useWindowSize() {
+  const [size, setSize] = useState({ width: 1200, height: 800 });
+
+  useEffect(() => {
+    function onResize() {
+      setSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return size;
+}
+
 const ITEMS = [
   { id:1,  name:"Ivory Oxford Shirt",        brand:"J.Crew",         category:"Oxford Shirt", occasion:"Campus",    style:"Preppy",    season:"Fall/Winter",  buyPrice:85,  condition:"Like New", rentalCount:3,  color:"#f5f0e8", emoji:"👕", description:"A crisp ivory oxford with a relaxed fit. Works everywhere, all semester." },
   { id:2,  name:"Charcoal Merino Crewneck",  brand:"Uniqlo",         category:"Crewneck",     occasion:"Campus",    style:"Minimal",   season:"Fall/Winter",  buyPrice:70,  condition:"Good",     rentalCount:9,  color:"#4b5563", emoji:"🧥", description:"Ultrasoft merino that drapes well and layers even better." },
@@ -91,22 +106,50 @@ const OUTFITS = [
 // pricing helpers defined above with data
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
-function Nav({ page, setPage, suitcase }) {
+function Nav({ page, setPage, suitcase, isMobile, pagePad }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const links = [["browse","Shop"],["quiz","Find My Style"],["community","Community"],["sustainability","Our Mission"]];
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [page, isMobile]);
+
   return (
-    <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.96)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 40px",height:60 }}>
-      <button onClick={()=>setPage("home")} style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,letterSpacing:"-0.3px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
+    <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.96)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding:`0 ${pagePad}px`,height:isMobile?56:60 }}>
+      <button onClick={()=>setPage("home")} style={{ fontFamily:S.serif,fontSize:isMobile?20:22,fontWeight:600,letterSpacing:"-0.3px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
         Davenport
       </button>
-      <div style={{ display:"flex",gap:28,alignItems:"center" }}>
-        {[["browse","Shop"],["quiz","Find My Style"],["community","Community"],["sustainability","Our Mission"]].map(([p,label])=>(
-          <button key={p} onClick={()=>setPage(p)} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:12,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",color:page===p?S.ink:S.muted,borderBottom:page===p?`1px solid ${S.ink}`:"1px solid transparent",paddingBottom:2 }}>
-            {label}
+      {!isMobile && (
+        <div style={{ display:"flex",gap:28,alignItems:"center" }}>
+          {links.map(([p,label])=>(
+            <button key={p} onClick={()=>setPage(p)} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:12,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",color:page===p?S.ink:S.muted,borderBottom:page===p?`1px solid ${S.ink}`:"1px solid transparent",paddingBottom:2 }}>
+              {label}
+            </button>
+          ))}
+          <button onClick={()=>setPage("suitcase")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"9px 20px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8 }}>
+            🧳 Suitcase {suitcase.length>0&&<span style={{ background:S.gold,color:S.ink,borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700 }}>{suitcase.length}</span>}
           </button>
-        ))}
-        <button onClick={()=>setPage("suitcase")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"9px 20px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8 }}>
-          🧳 Suitcase {suitcase.length>0&&<span style={{ background:S.gold,color:S.ink,borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700 }}>{suitcase.length}</span>}
-        </button>
-      </div>
+        </div>
+      )}
+      {isMobile && (
+        <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+          <button onClick={()=>setPage("suitcase")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"7px 12px",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6 }}>
+            🧳 {suitcase.length}
+          </button>
+          <button onClick={()=>setMenuOpen(v=>!v)} aria-label="Toggle navigation menu" style={{ width:36,height:36,background:"transparent",border:`1px solid ${S.stone}`,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",color:S.ink }}>
+            {menuOpen ? "✕" : "☰"}
+          </button>
+        </div>
+      )}
+      {isMobile && menuOpen && (
+        <div style={{ position:"absolute",top:"100%",left:0,right:0,background:S.cream,borderBottom:`1px solid ${S.stone}`,display:"flex",flexDirection:"column",padding:`10px ${pagePad}px 14px`,gap:6 }}>
+          {links.map(([p,label])=>(
+            <button key={p} onClick={()=>setPage(p)} style={{ background:"none",border:"none",cursor:"pointer",textAlign:"left",padding:"8px 0",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:page===p?S.ink:S.muted }}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
@@ -131,22 +174,22 @@ function MiniItemCard({ item, setPage }) {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomePage({ setPage }) {
+function HomePage({ setPage, isMobile, isTablet, pagePad }) {
   const featured = ITEMS.filter(i=>i.condition==="Like New").slice(0,3);
 
   return (
     <div>
       {/* Hero */}
-      <section style={{ minHeight:"100vh",display:"flex",flexDirection:"column",justifyContent:"center",padding:"80px 40px 60px",background:`linear-gradient(150deg, ${S.cream} 0%, #ede8e1 60%, #e0d9cf 100%)`,position:"relative",overflow:"hidden" }}>
-        <div style={{ position:"absolute",right:0,top:0,bottom:0,width:"40%",background:"linear-gradient(160deg, #e8e1d8, #d4ccc2)",display:"flex",alignItems:"center",justifyContent:"center" }}>
+      <section style={{ minHeight:isMobile?"auto":"100vh",display:"flex",flexDirection:"column",justifyContent:"center",padding:`${isMobile?72:80}px ${pagePad}px ${isMobile?40:60}px`,background:`linear-gradient(150deg, ${S.cream} 0%, #ede8e1 60%, #e0d9cf 100%)`,position:"relative",overflow:"hidden" }}>
+        <div style={{ position:"absolute",right:0,top:0,bottom:0,width:isMobile?"100%":"40%",background:"linear-gradient(160deg, #e8e1d8, #d4ccc2)",display:isMobile?"none":"flex",alignItems:"center",justifyContent:"center" }}>
           <img src="/logo.png" alt="" aria-hidden="true" style={{ opacity:0.1,width:220,height:220,objectFit:"contain",userSelect:"none" }}/>
         </div>
-        <div style={{ maxWidth:640,position:"relative",zIndex:1 }}>
+        <div style={{ maxWidth:isMobile?520:640,position:"relative",zIndex:1 }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.22em",textTransform:"uppercase",color:S.tan,marginBottom:28,fontWeight:500 }}>Better clothes. Less effort.</p>
-          <h1 style={{ fontFamily:S.serif,fontSize:"clamp(52px, 7vw, 88px)",fontWeight:600,lineHeight:0.93,letterSpacing:"-2.5px",color:S.ink,marginBottom:32 }}>
+          <h1 style={{ fontFamily:S.serif,fontSize:isMobile?"clamp(42px, 12vw, 56px)":"clamp(52px, 7vw, 88px)",fontWeight:600,lineHeight:0.93,letterSpacing:isMobile?"-1.6px":"-2.5px",color:S.ink,marginBottom:isMobile?24:32 }}>
             A smarter way<br/><em style={{ fontStyle:"italic",color:"#6b5e4e" }}>for men</em><br/>to dress.
           </h1>
-          <p style={{ fontFamily:S.sans,fontSize:17,color:S.muted,lineHeight:1.8,maxWidth:460,marginBottom:16 }}>
+          <p style={{ fontFamily:S.sans,fontSize:isMobile?15:17,color:S.muted,lineHeight:1.8,maxWidth:460,marginBottom:16 }}>
             A curated wardrobe subscription for college men. Wear pieces from the brands you actually want. Pay only for what's in your Suitcase, or buy the ones you can't let go.
           </p>
           <p style={{ fontFamily:S.sans,fontSize:13,color:S.tan,marginBottom:44,fontStyle:"italic" }}>Discover. Wear. Own.</p>
@@ -155,7 +198,7 @@ function HomePage({ setPage }) {
             <button onClick={()=>setPage("quiz")} style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Find My Style</button>
           </div>
         </div>
-        <div style={{ position:"absolute",bottom:44,left:40,display:"flex",gap:52 }}>
+        <div style={{ position:isMobile?"static":"absolute",bottom:44,left:pagePad,display:"flex",gap:isMobile?24:52,marginTop:isMobile?36:0,flexWrap:"wrap" }}>
           {[["50+","Premium brands"],["Wear or buy","Your choice"],["Pay per piece","Monthly"]].map(([v,l])=>(
             <div key={v}><div style={{ fontFamily:S.serif,fontSize:17,fontWeight:600,color:S.ink }}>{v}</div><div style={{ fontFamily:S.sans,fontSize:11,color:S.tan,letterSpacing:"0.06em",marginTop:2 }}>{l}</div></div>
           ))}
@@ -176,27 +219,27 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Featured */}
-      <section style={{ padding:"88px 40px",background:"#fff" }}>
+      <section style={{ padding:`${isMobile?64:88}px ${pagePad}px`,background:"#fff" }}>
         <div style={{ maxWidth:1080,margin:"0 auto" }}>
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:52 }}>
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:isMobile?"flex-start":"flex-end",marginBottom:52,flexDirection:isMobile?"column":"row",gap:isMobile?16:0 }}>
             <div>
               <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Fresh In</p>
-              <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink }}>Brand new. Never worn.</h2>
+              <h2 style={{ fontFamily:S.serif,fontSize:isMobile?34:44,fontWeight:600,letterSpacing:"-1px",color:S.ink }}>Brand new. Never worn.</h2>
             </div>
             <button onClick={()=>setPage("browse")} style={{ background:"none",border:`1px solid #c9bfb0`,cursor:"pointer",padding:"10px 24px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#6b5e4e" }}>View All</button>
           </div>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:28 }}>
+          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(3,1fr)",gap:28 }}>
             {featured.map(item=><MiniItemCard key={item.id} item={item} setPage={setPage}/>)}
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section style={{ padding:"88px 40px",background:S.cream }}>
+      <section style={{ padding:`${isMobile?64:88}px ${pagePad}px`,background:S.cream }}>
         <div style={{ maxWidth:1080,margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:16 }}>How It Works</p>
-          <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:64 }}>Simple by design.</h2>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:48 }}>
+          <h2 style={{ fontFamily:S.serif,fontSize:isMobile?34:44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:64 }}>Simple by design.</h2>
+          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"1fr 1fr 1fr",gap:48 }}>
             {[["01","Discover your style","Take the style quiz or browse the full catalog. Filter by brand, occasion, or season and find pieces you actually want to wear."],["02","Build your Suitcase","Add individual pieces at the price point that works for you. Pay per piece, per month."],["03","Wear, swap, or own","Love something? Buy it outright. Done with a piece? Swap it for something new. Your wardrobe, your call."]].map(([n,t,d])=>(
               <div key={n} style={{ borderTop:`1px solid ${S.stone}`,paddingTop:28 }}>
                 <div style={{ fontFamily:S.serif,fontSize:52,color:S.stone,fontWeight:700,lineHeight:1,marginBottom:18 }}>{n}</div>
@@ -209,7 +252,7 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Quiz CTA */}
-      <section style={{ padding:"88px 40px",background:S.ink }}>
+      <section style={{ padding:`${isMobile?64:88}px ${pagePad}px`,background:S.ink }}>
         <div style={{ maxWidth:680,margin:"0 auto",textAlign:"center" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:20 }}>Style Discovery</p>
           <h2 style={{ fontFamily:S.serif,fontSize:"clamp(34px, 5vw, 58px)",fontWeight:600,color:S.cream,letterSpacing:"-1.5px",marginBottom:20 }}>Don't know where to start?</h2>
@@ -219,7 +262,7 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Community teaser */}
-      <section style={{ padding:"88px 40px", background:S.ink }}>
+      <section style={{ padding:`${isMobile?64:88}px ${pagePad}px`, background:S.ink }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:44, flexWrap:"wrap", gap:20 }}>
             <div>
@@ -230,7 +273,7 @@ function HomePage({ setPage }) {
               See All Posts
             </button>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
+          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(3,1fr)", gap:16 }}>
             {POSTS.slice(0,3).map(post => (
               <div key={post.id} onClick={()=>setPage("community")} style={{ cursor:"pointer", background:post.bg, height:240, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:"18px", position:"relative", overflow:"hidden" }}>
                 <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)" }}/>
@@ -251,14 +294,14 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Sustainability teaser */}
-      <section style={{ padding:"88px 40px",background:"#fff",display:"flex",alignItems:"center",gap:72,flexWrap:"wrap" }}>
+      <section style={{ padding:`${isMobile?64:88}px ${pagePad}px`,background:"#fff",display:"flex",alignItems:"center",gap:isMobile?32:72,flexWrap:"wrap" }}>
         <div style={{ flex:1,minWidth:280 }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:16 }}>Our Mission</p>
           <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,color:S.ink,letterSpacing:"-1px",marginBottom:16 }}>Fashion has a problem.</h2>
           <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,lineHeight:1.75,marginBottom:32,maxWidth:420 }}>92 million tons of textile waste enter landfills every year. Davenport exists as the answer wear more, own less, waste nothing.</p>
           <button onClick={()=>setPage("sustainability")} style={{ background:"none",border:`1px solid ${S.ink}`,cursor:"pointer",padding:"12px 28px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:S.ink }}>Read Our Story</button>
         </div>
-        <div style={{ flex:1,minWidth:280,display:"grid",gridTemplateColumns:"1fr 1fr",gap:16 }}>
+        <div style={{ flex:1,minWidth:280,display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16 }}>
           {[["92M","Tons of textile waste yearly"],["60%","Clothes worn fewer than 5 times"],["$500B","Lost to underused clothing annually"],["3,000L","Water per pair of jeans"]].map(([stat,label])=>(
             <div key={stat} style={{ background:S.cream,padding:"28px 22px",border:`1px solid ${S.stone}` }}>
               <div style={{ fontFamily:S.serif,fontSize:34,fontWeight:700,color:S.ink,marginBottom:6 }}>{stat}</div>
@@ -272,7 +315,7 @@ function HomePage({ setPage }) {
 }
 
 // ─── BROWSE ───────────────────────────────────────────────────────────────────
-function BrowsePage({ setPage, addToSuitcase, suitcase }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad }) {
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
@@ -300,9 +343,9 @@ function BrowsePage({ setPage, addToSuitcase, suitcase }) {
 
   return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
-      <div style={{ padding:"52px 40px 36px",background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
+      <div style={{ padding:`52px ${pagePad}px 36px`,background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
         <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>The Catalog</p>
-        <h1 style={{ fontFamily:S.serif,fontSize:48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom:32 }}>Every piece. Your price.</h1>
+        <h1 style={{ fontFamily:S.serif,fontSize:isMobile?36:48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom:32 }}>Every piece. Your price.</h1>
 
         {/* Shop Brand New styled as a filter pill, not a CTA */}
         <div style={{ marginBottom:22,display:"flex",alignItems:"center",gap:10 }}>
@@ -338,7 +381,7 @@ function BrowsePage({ setPage, addToSuitcase, suitcase }) {
         <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,marginTop:16 }}>{filtered.length} piece{filtered.length!==1?"s":""} found</p>
       </div>
 
-      <div style={{ padding:"36px 40px",display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
+      <div style={{ padding:`36px ${pagePad}px`,display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"repeat(2, minmax(0, 1fr))":"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
         {filtered.map(item=>(
           <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)}/>
         ))}
@@ -378,10 +421,10 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase }) {
 }
 
 // ─── ITEM DETAIL ──────────────────────────────────────────────────────────────
-function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
+function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad }) {
   const item=ITEMS.find(i=>i.id===itemId);
   const [inSuitcase,setInSuitcase]=useState(suitcase.some(s=>s.id===itemId));
-  if(!item) return <div style={{ padding:"120px 40px" }}><h2>Item not found</h2></div>;
+  if(!item) return <div style={{ padding:`120px ${pagePad}px` }}><h2>Item not found</h2></div>;
 
   const prices=Object.entries(CONDITIONS).map(([key,val])=>({
     label:key, monthly:Math.max(4,Math.round(item.buyPrice*val.multiplier*0.10)),
@@ -391,13 +434,13 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
 
   return (
     <div style={{ paddingTop:60,background:S.cream,minHeight:"100vh" }}>
-      <div style={{ maxWidth:1020,margin:"0 auto",padding:"52px 40px" }}>
+      <div style={{ maxWidth:1020,margin:"0 auto",padding:`52px ${pagePad}px` }}>
         <button onClick={()=>setPage("browse")} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:S.tan,marginBottom:36 }}>← Back to Catalog</button>
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:60 }}>
-          <div style={{ background:item.color,height:420,display:"flex",alignItems:"center",justifyContent:"center",fontSize:110 }}>{item.emoji}</div>
+        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:isMobile?28:60 }}>
+          <div style={{ background:item.color,height:isMobile?300:420,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isMobile?88:110 }}>{item.emoji}</div>
           <div>
             <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>{item.brand} · {item.category} · {item.occasion}</p>
-            <h1 style={{ fontFamily:S.serif,fontSize:42,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>{item.name}</h1>
+            <h1 style={{ fontFamily:S.serif,fontSize:isMobile?34:42,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>{item.name}</h1>
             <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.8,marginBottom:36 }}>{item.description}</p>
             <div style={{ marginBottom:32 }}>
               <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:S.tan,marginBottom:14 }}>Monthly pricing</p>
@@ -436,7 +479,7 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
           <div style={{ marginTop:80 }}>
             <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Goes Well With</p>
             <h2 style={{ fontFamily:S.serif,fontSize:34,fontWeight:600,color:S.ink,marginBottom:32 }}>Complete the look.</h2>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:24 }}>
+            <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(3,1fr)",gap:24 }}>
               {related.map(i=><MiniItemCard key={i.id} item={i} setPage={setPage}/>)}
             </div>
           </div>
@@ -447,7 +490,7 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
 }
 
 // ─── QUIZ ─────────────────────────────────────────────────────────────────────
-function QuizPage({ setPage, setStyleProfile }) {
+function QuizPage({ setPage, setStyleProfile, isMobile, isTablet, pagePad }) {
   const [index,setIndex]=useState(0);
   const [liked,setLiked]=useState([]);
   const [done,setDone]=useState(false);
@@ -466,13 +509,13 @@ function QuizPage({ setPage, setStyleProfile }) {
     const picks=ITEMS.filter(i=>i.condition==="Like New").slice(0,4);
     return (
       <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
-        <div style={{ maxWidth:960,margin:"0 auto",padding:"60px 40px" }}>
+        <div style={{ maxWidth:960,margin:"0 auto",padding:`60px ${pagePad}px` }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:14 }}>Your Style Profile</p>
-          <h1 style={{ fontFamily:S.serif,fontSize:54,fontWeight:600,color:S.ink,letterSpacing:"-1.5px",marginBottom:14 }}>We know your vibe.</h1>
+          <h1 style={{ fontFamily:S.serif,fontSize:isMobile?38:54,fontWeight:600,color:S.ink,letterSpacing:"-1.5px",marginBottom:14 }}>We know your vibe.</h1>
           <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,marginBottom:52 }}>Based on your swipes, here's what we think you'll love.</p>
           <div style={{ marginBottom:56 }}>
             <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:20 }}>Suggested Outfits</p>
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:24 }}>
+            <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:24 }}>
               {OUTFITS.slice(0,2).map(outfit=>{
                 const pieces=outfit.itemIds.map(id=>ITEMS.find(i=>i.id===id));
                 const total=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
@@ -494,7 +537,7 @@ function QuizPage({ setPage, setStyleProfile }) {
           </div>
           <div>
             <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:20 }}>Individual Picks For You</p>
-            <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16 }}>
+            <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4,1fr)",gap:16 }}>
               {picks.map(item=><MiniItemCard key={item.id} item={item} setPage={setPage}/>)}
             </div>
           </div>
@@ -512,7 +555,7 @@ function QuizPage({ setPage, setStyleProfile }) {
       <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:12 }}>Style Discovery</p>
       <h1 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,color:S.cream,letterSpacing:"-1px",marginBottom:8 }}>What speaks to you?</h1>
       <p style={{ fontFamily:S.sans,fontSize:14,color:"#6b7280",marginBottom:52 }}>{index+1} of {SWIPE_ITEMS.length}</p>
-      <div style={{ width:340,background:"#fff",border:"1px solid #1f2937",padding:"52px 40px",textAlign:"center",transition:"transform 0.28s,opacity 0.28s",transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none",opacity:animDir?0:1 }}>
+      <div style={{ width:isMobile?`min(340px, calc(100vw - ${pagePad * 2}px))`:340,background:"#fff",border:"1px solid #1f2937",padding:isMobile?"40px 24px":"52px 40px",textAlign:"center",transition:"transform 0.28s,opacity 0.28s",transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none",opacity:animDir?0:1 }}>
         <div style={{ fontSize:64,marginBottom:24 }}>{current.emoji}</div>
         <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:S.ink,marginBottom:10 }}>{current.label}</h2>
         <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted }}>{current.desc}</p>
@@ -529,7 +572,7 @@ function QuizPage({ setPage, setStyleProfile }) {
 }
 
 // ─── SUITCASE ─────────────────────────────────────────────────────────────────
-function SuitcasePage({ suitcase, removeFromSuitcase, setPage }) {
+function SuitcasePage({ suitcase, removeFromSuitcase, setPage, isMobile, isTablet, pagePad }) {
   const [acted,setActed]=useState({});
   const total=suitcase.reduce((s,i)=>s+getMonthlyPrice(i),0);
   const suggested=ITEMS.filter(i=>!suitcase.some(s=>s.id===i.id)).slice(0,4);
@@ -551,13 +594,13 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage }) {
 
   return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
-      <div style={{ maxWidth:980,margin:"0 auto",padding:"52px 40px" }}>
+      <div style={{ maxWidth:980,margin:"0 auto",padding:`52px ${pagePad}px` }}>
         <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Your Suitcase</p>
-        <h1 style={{ fontFamily:S.serif,fontSize:48,fontWeight:600,color:S.ink,letterSpacing:"-1.5px",marginBottom:44 }}>
+        <h1 style={{ fontFamily:S.serif,fontSize:isMobile?36:48,fontWeight:600,color:S.ink,letterSpacing:"-1.5px",marginBottom:44 }}>
           {suitcase.length} piece{suitcase.length!==1?"s":""} selected.
         </h1>
 
-        <div style={{ display:"grid",gridTemplateColumns:"1fr 340px",gap:40,alignItems:"start" }}>
+        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 340px",gap:40,alignItems:"start" }}>
           <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
             {suitcase.map(item=>(
               <div key={item.id} style={{ background:"#fff",border:`1px solid ${S.stone}` }}>
@@ -594,7 +637,7 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage }) {
           </div>
 
           {/* Summary panel */}
-          <div style={{ background:S.ink,padding:"36px 32px",position:"sticky",top:80 }}>
+          <div style={{ background:S.ink,padding:"36px 32px",position:isMobile?"static":"sticky",top:80 }}>
             <h2 style={{ fontFamily:S.serif,fontSize:26,fontWeight:600,color:S.cream,marginBottom:28 }}>Monthly Total</h2>
             <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:24 }}>
               {suitcase.map(item=>(
@@ -625,7 +668,7 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage }) {
           <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Suggested for You</p>
           <h2 style={{ fontFamily:S.serif,fontSize:36,fontWeight:600,color:S.ink,marginBottom:10 }}>Pieces that pair well.</h2>
           <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted,marginBottom:36 }}>Based on your Suitcase, your style profile, and what's trending right now.</p>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:18 }}>
+          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4,1fr)",gap:18 }}>
             {suggested.map(item=><MiniItemCard key={item.id} item={item} setPage={setPage}/>)}
           </div>
         </div>
@@ -635,12 +678,12 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage }) {
 }
 
 // ─── SUSTAINABILITY ───────────────────────────────────────────────────────────
-function SustainabilityPage() {
+function SustainabilityPage({ isMobile, isTablet, pagePad }) {
   return (
     <div style={{ paddingTop:60,background:"#000",minHeight:"100vh",color:"#fff" }}>
 
       {/* Personal opening */}
-      <section style={{ padding:"100px 40px",borderBottom:"1px solid #111" }}>
+      <section style={{ padding:`100px ${pagePad}px`,borderBottom:"1px solid #111" }}>
         <div style={{ maxWidth:820,margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.22em",textTransform:"uppercase",color:"#444",marginBottom:28 }}>Our Mission</p>
           <h1 style={{ fontFamily:S.serif,fontSize:"clamp(48px, 8vw, 96px)",fontWeight:300,lineHeight:0.9,letterSpacing:"-3px",color:"#fff",marginBottom:44 }}>
@@ -656,10 +699,10 @@ function SustainabilityPage() {
       </section>
 
       {/* Stats */}
-      <section style={{ padding:"80px 40px",borderBottom:"1px solid #111" }}>
+      <section style={{ padding:`80px ${pagePad}px`,borderBottom:"1px solid #111" }}>
         <div style={{ maxWidth:1080,margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#333",marginBottom:48 }}>The bigger picture</p>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:"#111" }}>
+          <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(3,1fr)",gap:1,background:"#111" }}>
             {[["92M","Tons","of textile waste enter landfills every single year"],["60%","Of clothes","are worn fewer than 5 times before being thrown away"],["$500B","Lost annually","to clothing that gets discarded instead of reused"],["20%","Of pollution","of global wastewater comes from textile dyeing"],["3,000L","Of water","used to produce a single pair of jeans"],["10%","Of emissions","of global carbon output is from the fashion industry"]].map(([stat,label,detail])=>(
               <div key={stat} style={{ background:"#000",padding:"52px 36px" }}>
                 <div style={{ fontFamily:S.serif,fontSize:62,fontWeight:700,color:"#fff",lineHeight:1,marginBottom:6 }}>{stat}</div>
@@ -672,7 +715,7 @@ function SustainabilityPage() {
       </section>
 
       {/* Davenport Answer */}
-      <section style={{ padding:"80px 40px",borderBottom:"1px solid #111" }}>
+      <section style={{ padding:`80px ${pagePad}px`,borderBottom:"1px solid #111" }}>
         <div style={{ maxWidth:820,margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#333",marginBottom:36 }}>The Davenport Answer</p>
           {[
@@ -690,7 +733,7 @@ function SustainabilityPage() {
       </section>
 
       {/* Inspiring close */}
-      <section style={{ padding:"80px 40px",textAlign:"center" }}>
+      <section style={{ padding:`80px ${pagePad}px`,textAlign:"center" }}>
         <h2 style={{ fontFamily:S.serif,fontSize:"clamp(36px, 5vw, 62px)",fontWeight:600,color:"#fff",letterSpacing:"-2px",marginBottom:20 }}>
           A smarter way to dress.<br/><em style={{ fontStyle:"italic",color:"#9c8b78" }}>For everyone.</em>
         </h2>
@@ -706,7 +749,7 @@ function SustainabilityPage() {
 }
 
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
-function AuthPage({ mode }) {
+function AuthPage({ mode, pagePad }) {
   const [done,setDone]=useState(false);
   const inp={ width:"100%",padding:"13px 16px",border:`1px solid ${S.stone}`,background:S.cream,fontFamily:S.sans,fontSize:14,color:S.ink,outline:"none",marginBottom:14,boxSizing:"border-box" };
   if(done) return (
@@ -720,7 +763,7 @@ function AuthPage({ mode }) {
   );
   return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream,display:"flex",alignItems:"center",justifyContent:"center" }}>
-      <div style={{ width:"100%",maxWidth:400,padding:"0 24px" }}>
+      <div style={{ width:"100%",maxWidth:400,padding:`0 ${Math.max(16, pagePad)}px` }}>
         <div style={{ textAlign:"center",marginBottom:44 }}>
           <p style={{ fontFamily:S.serif,fontSize:14,color:S.tan,marginBottom:8 }}>Davenport Wardrobe</p>
           <h1 style={{ fontFamily:S.serif,fontSize:36,fontWeight:600,color:S.ink,letterSpacing:"-0.8px" }}>{mode==="signup"?"Create your account.":"Sign back in."}</h1>
@@ -749,7 +792,7 @@ const POSTS = [
   { id:9,  user:"drew_p",     school:"Boston College",emoji:"👤",bg:"#292524", caption:"The turtleneck. That's it. That's the post.",                                               items:["Merino Turtleneck"],                                likes:512, wears:"9 wears",             aspect:"wide" },
 ];
 
-function CommunityPage({ setPage }) {
+function CommunityPage({ setPage, isMobile, isTablet, pagePad }) {
   const [filter, setFilter] = useState("All");
   const [liked, setLiked] = useState({});
   const schools = ["All", ...new Set(POSTS.map(p => p.school))];
@@ -763,12 +806,12 @@ function CommunityPage({ setPage }) {
   return (
     <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
       {/* Header */}
-      <div style={{ padding:"52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
+      <div style={{ padding:`52px ${pagePad}px 36px`, background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:20 }}>
             <div>
               <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>The Community</p>
-              <h1 style={{ fontFamily:S.serif, fontSize:48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:10 }}>Worn by real people.</h1>
+              <h1 style={{ fontFamily:S.serif, fontSize:isMobile?36:48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:10 }}>Worn by real people.</h1>
               <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, maxWidth:440 }}>See how Davenport pieces actually look on real guys, at real schools, in real life.</p>
             </div>
             <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:10 }}>
@@ -803,8 +846,8 @@ function CommunityPage({ setPage }) {
       </div>
 
       {/* Masonry-style grid */}
-      <div style={{ maxWidth:1080, margin:"0 auto", padding:"40px 40px 80px" }}>
-        <div style={{ columns:"3 300px", columnGap:20 }}>
+      <div style={{ maxWidth:1080, margin:"0 auto", padding:`40px ${pagePad}px 80px` }}>
+        <div style={{ columns:isMobile?"1 280px":isTablet?"2 280px":"3 300px", columnGap:20 }}>
           {filtered.map(post => (
             <div key={post.id} style={{ breakInside:"avoid", marginBottom:20, background:"#fff", border:`1px solid ${S.stone}` }}>
               {/* Visual */}
@@ -879,9 +922,9 @@ function CommunityPage({ setPage }) {
 }
 
 
-function Footer({ setPage }) {
+function Footer({ setPage, isMobile, pagePad }) {
   return (
-    <footer style={{ background:S.ink,padding:"52px 40px 36px",borderTop:"1px solid #1a1a1a" }}>
+    <footer style={{ background:S.ink,padding:`52px ${pagePad}px 36px`,borderTop:"1px solid #1a1a1a" }}>
       <div style={{ maxWidth:1080,margin:"0 auto",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:32,marginBottom:40 }}>
         <div>
           <div style={{ fontFamily:S.serif,fontSize:22,color:S.cream,marginBottom:8 }}>Davenport</div>
@@ -914,7 +957,7 @@ function Footer({ setPage }) {
           ))}
         </div>
       </div>
-      <div style={{ borderTop:"1px solid #1f2937",paddingTop:20,display:"flex",justifyContent:"space-between" }}>
+      <div style={{ borderTop:"1px solid #1f2937",paddingTop:20,display:"flex",justifyContent:"space-between",flexDirection:isMobile?"column":"row",gap:isMobile?8:0 }}>
         <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151" }}>© 2025 Davenport Wardrobe</p>
         <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151" }}>Built for men who mean it.</p>
       </div>
@@ -927,6 +970,10 @@ export default function App() {
   const [page,setPage]=useState("home");
   const [suitcase,setSuitcase]=useState([]);
   const [styleProfile,setStyleProfile]=useState([]);
+  const { width } = useWindowSize();
+  const isMobile = width < 768;
+  const isTablet = width >= 768 && width < 1024;
+  const pagePad = isMobile ? 16 : isTablet ? 24 : 40;
 
   function addToSuitcase(item){ setSuitcase(s=>s.some(i=>i.id===item.id)?s:[...s,item]); }
   function removeFromSuitcase(id){ setSuitcase(s=>s.filter(i=>i.id!==id)); }
@@ -938,24 +985,24 @@ export default function App() {
   }
 
   function render(){
-    if(page==="home")          return <HomePage setPage={nav}/>;
-    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
-    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile}/>;
-    if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav}/>;
-    if(page==="community")     return <CommunityPage setPage={nav}/>;
-    if(page==="sustainability") return <SustainabilityPage/>;
-    if(page==="auth-signup")   return <AuthPage mode="signup"/>;
-    if(page==="auth-login")    return <AuthPage mode="login"/>;
-    if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
-    return <HomePage setPage={nav}/>;
+    if(page==="home")          return <HomePage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="community")     return <CommunityPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="sustainability") return <SustainabilityPage isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="auth-signup")   return <AuthPage mode="signup" pagePad={pagePad}/>;
+    if(page==="auth-login")    return <AuthPage mode="login" pagePad={pagePad}/>;
+    if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    return <HomePage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
   }
 
   return (
     <>
       <style>{FONTS}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#faf9f7;-webkit-font-smoothing:antialiased}button:focus,input:focus{outline:none}`}</style>
-      <Nav page={page} setPage={nav} suitcase={suitcase}/>
+      <Nav page={page} setPage={nav} suitcase={suitcase} isMobile={isMobile} pagePad={pagePad}/>
       {render()}
-      {page!=="quiz"&&<Footer setPage={nav}/>}
+      {page!=="quiz"&&<Footer setPage={nav} isMobile={isMobile} pagePad={pagePad}/>}
     </>
   );
 }
