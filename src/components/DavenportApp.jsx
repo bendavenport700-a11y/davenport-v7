@@ -86,14 +86,14 @@ const ITEMS = [
 ];
 
 const SWIPE_ITEMS = [
-  { id:"s1", label:"Clean & Minimal",  emoji:"⬜", desc:"White tees, slim cuts, nothing loud", image:"/style-minimal-tee.png" },
-  { id:"s2", label:"Streetwear Edge",  emoji:"🖤", desc:"Oversized fits, cargo, bold silhouettes" },
-  { id:"s3", label:"Collegiate Prep",  emoji:"🏛️", desc:"Oxford shirts, chinos, rugby stripes", image:"/style-navy-crew.png" },
-  { id:"s4", label:"Sharp Business",   emoji:"💼", desc:"Blazers, dress shirts, leather shoes" },
-  { id:"s5", label:"Weekend Casual",   emoji:"🌿", desc:"Linen, cargo, relaxed everything" },
-  { id:"s6", label:"Going Out Fits",   emoji:"🌙", desc:"Dark tones, structure, heads turning" },
-  { id:"s7", label:"Earth Tones",      emoji:"🍂", desc:"Camel, olive, stone warm palette", image:"/style-stone-chinos.png" },
-  { id:"s8", label:"Monochrome",       emoji:"◾", desc:"Black, white, grey. Nothing in between" },
+  { id:"s1", label:"Clean & Minimal",  emoji:"⬜", desc:"White tees, slim cuts, nothing loud", image:"/style-minimal-tee.png",  filterStyle:"Minimal" },
+  { id:"s2", label:"Streetwear Edge",  emoji:"🖤", desc:"Oversized fits, cargo, bold silhouettes",                         filterStyle:"Streetwear" },
+  { id:"s3", label:"Collegiate Prep",  emoji:"🏛️", desc:"Oxford shirts, chinos, rugby stripes", image:"/style-navy-crew.png", filterStyle:"Preppy" },
+  { id:"s4", label:"Sharp Business",   emoji:"💼", desc:"Blazers, dress shirts, leather shoes",                             filterStyle:"Business" },
+  { id:"s5", label:"Weekend Casual",   emoji:"🌿", desc:"Linen, cargo, relaxed everything",                                 filterStyle:"Minimal" },
+  { id:"s6", label:"Going Out Fits",   emoji:"🌙", desc:"Dark tones, structure, heads turning",                             filterStyle:"Business" },
+  { id:"s7", label:"Earth Tones",      emoji:"🍂", desc:"Camel, olive, stone warm palette", image:"/style-stone-chinos.png",filterStyle:"Preppy" },
+  { id:"s8", label:"Monochrome",       emoji:"◾", desc:"Black, white, grey. Nothing in between",                           filterStyle:"Minimal" },
 ];
 
 const OUTFITS = [
@@ -315,7 +315,7 @@ function HomePage({ setPage, isMobile, isTablet, pagePad }) {
 }
 
 // ─── BROWSE ───────────────────────────────────────────────────────────────────
-function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, pagePad, preselectedStyle, onPrefillConsumed }) {
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
@@ -325,6 +325,13 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, isMobile, isTablet, page
   const styles     = ["All",...new Set(ITEMS.map(i=>i.style))];
   const seasons    = ["All",...new Set(ITEMS.map(i=>i.season))];
   const categories = ["All",...new Set(ITEMS.map(i=>i.category))];
+
+  useEffect(() => {
+    if (preselectedStyle) {
+      setFilters(f => ({ ...f, style: preselectedStyle }));
+      if (onPrefillConsumed) onPrefillConsumed();
+    }
+  }, [preselectedStyle, onPrefillConsumed]);
 
   const filtered = ITEMS
     .filter(i=>!newOnly||i.condition==="Like New")
@@ -490,102 +497,112 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, isMobile, is
 }
 
 // ─── QUIZ ─────────────────────────────────────────────────────────────────────
-function QuizPage({ setPage, setStyleProfile, isMobile, isTablet, pagePad }) {
-  const [index,setIndex]=useState(0);
-  const [liked,setLiked]=useState([]);
-  const [done,setDone]=useState(false);
-  const [animDir,setAnimDir]=useState(null);
+function QuizPage({ setPage, isMobile, isTablet, pagePad }) {
+  const [activeStyle, setActiveStyle] = useState(null);
+  const [slideIndex, setSlideIndex] = useState(0);
 
-  function swipe(dir) {
-    setAnimDir(dir);
-    setTimeout(()=>{
-      const newLiked=dir==="right"?[...liked,SWIPE_ITEMS[index].id]:liked;
-      if(index+1>=SWIPE_ITEMS.length){ setStyleProfile(newLiked); setDone(true); }
-      else{ setLiked(newLiked); setIndex(i=>i+1); setAnimDir(null); }
-    },280);
+  const activeItems = activeStyle ? ITEMS.filter(i => i.style === activeStyle.filterStyle).slice(0, 4) : [];
+  const currentItem = activeItems[slideIndex] || null;
+
+  function openStyle(styleCard) {
+    setActiveStyle(styleCard);
+    setSlideIndex(0);
   }
 
-  if(done) {
-    const picks=ITEMS.filter(i=>i.condition==="Like New").slice(0,4);
-    return (
-      <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
-        <div style={{ maxWidth:960,margin:"0 auto",padding:`60px ${pagePad}px` }}>
-          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:14 }}>Your Style Profile</p>
-          <h1 style={{ fontFamily:S.serif,fontSize:isMobile?38:54,fontWeight:600,color:S.ink,letterSpacing:"-1.5px",marginBottom:14 }}>We know your vibe.</h1>
-          <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,marginBottom:52 }}>Based on your swipes, here's what we think you'll love.</p>
-          <div style={{ marginBottom:56 }}>
-            <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:20 }}>Suggested Outfits</p>
-            <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:24 }}>
-              {OUTFITS.slice(0,2).map(outfit=>{
-                const pieces=outfit.itemIds.map(id=>ITEMS.find(i=>i.id===id));
-                const total=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
-                return (
-                  <div key={outfit.id} style={{ background:"#fff",border:`1px solid ${S.stone}`,padding:"28px" }}>
-                    <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:8 }}>{outfit.occasion} · {outfit.style}</p>
-                    <h3 style={{ fontFamily:S.serif,fontSize:24,fontWeight:600,color:S.ink,marginBottom:20 }}>{outfit.name}</h3>
-                    <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:20 }}>
-                      {pieces.map(p=><div key={p.id} style={{ background:p.color,height:60,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>{p.emoji}</div>)}
-                    </div>
-                    <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                      <span style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${total}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
-                      <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"8px 18px",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase" }}>Shop Outfit</button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:20 }}>Individual Picks For You</p>
-            <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4,1fr)",gap:16 }}>
-              {picks.map(item=><MiniItemCard key={item.id} item={item} setPage={setPage}/>)}
-            </div>
-          </div>
-          <div style={{ marginTop:52,textAlign:"center" }}>
-            <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"14px 40px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>Browse Full Catalog</button>
-          </div>
-        </div>
-      </div>
-    );
+  function closeModal() {
+    setActiveStyle(null);
+    setSlideIndex(0);
   }
 
-  const current=SWIPE_ITEMS[index];
+  function prevSlide() {
+    if (!activeItems.length) return;
+    setSlideIndex(i => (i - 1 + activeItems.length) % activeItems.length);
+  }
+
+  function nextSlide() {
+    if (!activeItems.length) return;
+    setSlideIndex(i => (i + 1) % activeItems.length);
+  }
+
+  function shopThisStyle() {
+    if (!activeStyle) return;
+    const selected = activeStyle.filterStyle;
+    closeModal();
+    setPage("browse", { style: selected });
+  }
+
+  useEffect(() => {
+    if (!activeStyle) return;
+    function onKeyDown(e) {
+      if (e.key === "Escape") closeModal();
+      if (e.key === "ArrowLeft") prevSlide();
+      if (e.key === "ArrowRight") nextSlide();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeStyle, activeItems.length]);
+
   return (
-    <div style={{ paddingTop:60,minHeight:"100vh",background:S.ink,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center" }}>
-      <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:12 }}>Style Discovery</p>
-      <h1 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,color:S.cream,letterSpacing:"-1px",marginBottom:8 }}>What speaks to you?</h1>
-      <p style={{ fontFamily:S.sans,fontSize:14,color:"#6b7280",marginBottom:52 }}>{index+1} of {SWIPE_ITEMS.length}</p>
-      <div
-        style={{
-          width:isMobile?`min(340px, calc(100vw - ${pagePad * 2}px))`:340,
-          border:"1px solid #1f2937",
-          padding:isMobile?"40px 24px":"52px 40px",
-          textAlign:"center",
-          transition:"transform 0.28s,opacity 0.28s",
-          transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none",
-          opacity:animDir?0:1,
-          position:"relative",
-          overflow:"hidden",
-          backgroundColor:"#fff",
-          backgroundImage: current.image ? `url(${current.image})` : "linear-gradient(135deg, #1f2937, #111827)",
-          backgroundSize:"cover",
-          backgroundPosition:"center"
-        }}
-      >
-        <div style={{ position:"absolute", inset:0, background:"rgba(0,0,0,0.32)" }} />
-        <div style={{ position:"relative", zIndex:1 }}>
-          <div style={{ fontSize:64,marginBottom:24,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.45))" }}>{current.emoji}</div>
-          <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:"#fff",marginBottom:10 }}>{current.label}</h2>
-          <p style={{ fontFamily:S.sans,fontSize:14,color:"rgba(255,255,255,0.9)" }}>{current.desc}</p>
+    <div style={{ paddingTop:60,minHeight:"100vh",background:"#05070b",position:"relative",overflow:"hidden" }}>
+      <div style={{ position:"absolute",inset:0,background:"radial-gradient(70% 55% at 50% 10%, rgba(23,33,58,0.7) 0%, rgba(5,7,11,0.96) 62%, rgba(5,7,11,1) 100%)" }} />
+      <div style={{ position:"relative",zIndex:1,maxWidth:1120,margin:"0 auto",padding:`${isMobile?72:84}px ${pagePad}px ${isMobile?64:86}px` }}>
+        <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6f5d47",marginBottom:14,textAlign:"center" }}>Style Discovery</p>
+        <h1 style={{ fontFamily:S.serif,fontSize:isMobile?42:56,fontWeight:600,color:"#f3f4f6",letterSpacing:"-1px",marginBottom:12,textAlign:"center" }}>Find your style direction.</h1>
+        <p style={{ fontFamily:S.sans,fontSize:isMobile?14:16,color:"#94a3b8",marginBottom:40,textAlign:"center" }}>Tap a card to preview real pieces in that style.</p>
+
+        <div style={{ display:"grid",gridTemplateColumns:isMobile?"1fr":isTablet?"1fr 1fr":"repeat(4, minmax(0, 1fr))",gap:16 }}>
+          {SWIPE_ITEMS.map(card=>(
+            <button key={card.id} onClick={()=>openStyle(card)} style={{ position:"relative",cursor:"pointer",border:"1px solid #1f2937",background:"#0b1220",aspectRatio:"3 / 4",padding:0,overflow:"hidden",textAlign:"left" }}>
+              <div style={{ position:"absolute",inset:0,backgroundImage: card.image ? `url(${card.image})` : "linear-gradient(155deg, #0f172a 0%, #111827 45%, #1f2937 100%)",backgroundSize:"cover",backgroundPosition:"center" }} />
+              <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top, rgba(0,0,0,0.8) 8%, rgba(0,0,0,0.25) 56%, rgba(0,0,0,0.45) 100%)" }} />
+              <div style={{ position:"relative",zIndex:1,height:"100%",display:"flex",flexDirection:"column",justifyContent:"space-between",padding:16 }}>
+                <div style={{ fontSize:28,filter:"drop-shadow(0 2px 8px rgba(0,0,0,0.45))" }}>{card.emoji}</div>
+                <div>
+                  <h3 style={{ fontFamily:S.serif,fontSize:26,fontWeight:600,color:"#f8fafc",lineHeight:1.02,marginBottom:8 }}>{card.label}</h3>
+                  <p style={{ fontFamily:S.sans,fontSize:12,color:"rgba(226,232,240,0.88)",lineHeight:1.5 }}>{card.desc}</p>
+                </div>
+              </div>
+            </button>
+          ))}
         </div>
       </div>
-      <div style={{ display:"flex",gap:24,marginTop:44 }}>
-        <button onClick={()=>swipe("left")}  style={{ width:64,height:64,borderRadius:"50%",background:"#1f2937",border:"1px solid #374151",cursor:"pointer",fontSize:22,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center" }}>✕</button>
-        <button onClick={()=>swipe("right")} style={{ width:64,height:64,borderRadius:"50%",background:S.gold,border:"none",cursor:"pointer",fontSize:22,display:"flex",alignItems:"center",justifyContent:"center" }}>♥</button>
-      </div>
-      <div style={{ display:"flex",gap:5,marginTop:36 }}>
-        {SWIPE_ITEMS.map((_,i)=><div key={i} style={{ width:28,height:3,background:i<=index?"#c4a882":"#1f2937",transition:"background 0.2s" }}/>)}
-      </div>
+
+      {activeStyle && currentItem && (
+        <div style={{ position:"fixed",inset:0,zIndex:420,background:"rgba(3,6,12,0.95)",display:"flex",alignItems:"center",justifyContent:"center",padding:`${isMobile?16:28}px` }}>
+          <button onClick={closeModal} style={{ position:"absolute",top:18,right:18,width:42,height:42,border:"1px solid #374151",background:"rgba(15,23,42,0.8)",color:"#e5e7eb",cursor:"pointer",fontSize:20 }}>✕</button>
+          <button onClick={prevSlide} style={{ position:"absolute",left:isMobile?10:26,top:"50%",transform:"translateY(-50%)",width:46,height:46,border:"1px solid #374151",background:"rgba(15,23,42,0.75)",color:"#e5e7eb",cursor:"pointer",fontSize:24 }}>‹</button>
+          <button onClick={nextSlide} style={{ position:"absolute",right:isMobile?10:26,top:"50%",transform:"translateY(-50%)",width:46,height:46,border:"1px solid #374151",background:"rgba(15,23,42,0.75)",color:"#e5e7eb",cursor:"pointer",fontSize:24 }}>›</button>
+
+          <div style={{ width:"100%",maxWidth:980,border:"1px solid #1f2937",background:"#0b1220",display:"grid",gridTemplateColumns:isMobile?"1fr":"1.2fr 1fr",overflow:"hidden" }}>
+            <div style={{ minHeight:isMobile?280:460,background:`linear-gradient(145deg, ${currentItem.color}, #0f172a)`,display:"flex",alignItems:"center",justifyContent:"center",position:"relative" }}>
+              <div style={{ position:"absolute",inset:0,background:"linear-gradient(to top, rgba(2,6,23,0.75), rgba(2,6,23,0.15))" }} />
+              <div style={{ position:"relative",zIndex:1,textAlign:"center" }}>
+                <div style={{ fontSize:isMobile?88:130,marginBottom:12 }}>{currentItem.emoji}</div>
+                <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:"#cbd5e1" }}>{currentItem.category}</p>
+              </div>
+            </div>
+            <div style={{ padding:isMobile?"24px 18px":"30px 28px",display:"flex",flexDirection:"column" }}>
+              <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:"#64748b",marginBottom:8 }}>{activeStyle.label}</p>
+              <h2 style={{ fontFamily:S.serif,fontSize:isMobile?34:44,color:"#f8fafc",fontWeight:600,letterSpacing:"-0.8px",marginBottom:14,lineHeight:1 }}>{currentItem.name}</h2>
+              <p style={{ fontFamily:S.sans,fontSize:13,color:"#cbd5e1",marginBottom:4 }}>{currentItem.brand}</p>
+              <p style={{ fontFamily:S.serif,fontSize:28,color:"#f8fafc",fontWeight:700,marginBottom:14 }}>${getMonthlyPrice(currentItem)}<span style={{ fontFamily:S.sans,fontSize:11,color:"#94a3b8" }}>/mo</span></p>
+              <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:18 }}>
+                <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:"#94a3b8" }}>Color</span>
+                <span style={{ width:18,height:18,background:currentItem.color,border:"1px solid #334155",display:"inline-block" }} />
+              </div>
+              <p style={{ fontFamily:S.sans,fontSize:13,color:"#9ca3af",lineHeight:1.7,marginBottom:24 }}>{currentItem.description}</p>
+              <div style={{ display:"flex",gap:8,marginBottom:18 }}>
+                {activeItems.map((item, idx)=>(
+                  <button key={item.id} onClick={()=>setSlideIndex(idx)} style={{ width:9,height:9,borderRadius:"50%",border:"none",cursor:"pointer",background:idx===slideIndex?S.gold:"#334155" }} />
+                ))}
+              </div>
+              <button onClick={shopThisStyle} style={{ marginTop:"auto",background:S.gold,color:"#111827",border:"none",cursor:"pointer",padding:"14px 18px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
+                Shop This Style
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -988,7 +1005,7 @@ function Footer({ setPage, isMobile, pagePad }) {
 export default function App() {
   const [page,setPage]=useState("home");
   const [suitcase,setSuitcase]=useState([]);
-  const [styleProfile,setStyleProfile]=useState([]);
+  const [browseStylePrefill,setBrowseStylePrefill]=useState(null);
   const { width } = useWindowSize();
   const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
@@ -997,7 +1014,9 @@ export default function App() {
   function addToSuitcase(item){ setSuitcase(s=>s.some(i=>i.id===item.id)?s:[...s,item]); }
   function removeFromSuitcase(id){ setSuitcase(s=>s.filter(i=>i.id!==id)); }
 
-  function nav(p){
+  function nav(p, options = {}){
+    if (p === "browse" && options.style) setBrowseStylePrefill(options.style);
+    if (p !== "browse" || !options.style) setBrowseStylePrefill(null);
     if(p==="signup"){ setPage("auth-signup"); window.scrollTo(0,0); return; }
     if(p==="login"){  setPage("auth-login");  window.scrollTo(0,0); return; }
     setPage(p); window.scrollTo(0,0);
@@ -1005,8 +1024,8 @@ export default function App() {
 
   function render(){
     if(page==="home")          return <HomePage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
-    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
-    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad} preselectedStyle={browseStylePrefill} onPrefillConsumed={()=>setBrowseStylePrefill(null)}/>;
+    if(page==="quiz")          return <QuizPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="community")     return <CommunityPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="sustainability") return <SustainabilityPage isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
