@@ -95,7 +95,6 @@ function Nav({ page, setPage, suitcase }) {
   return (
     <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.96)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 40px",height:60 }}>
       <button onClick={()=>setPage("home")} style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,letterSpacing:"-0.3px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
-        <img src="/logo.png" alt="Davenport logo" style={{ height:32,width:32,objectFit:"contain" }}/>
         Davenport
       </button>
       <div style={{ display:"flex",gap:28,alignItems:"center" }}>
