@@ -514,12 +514,13 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, isMobile, is
 }
 
 // ─── QUIZ ─────────────────────────────────────────────────────────────────────
-function QuizPage({ setPage, setStyleProfile, isMobile, pagePad }) {
+function QuizPage({ setPage, setStyleProfile, suitcase, addToSuitcase, isMobile, pagePad }) {
   const [styleIndex,setStyleIndex]=useState(0);
   const [photoIndexByStyle,setPhotoIndexByStyle]=useState({});
   const [likedStyles,setLikedStyles]=useState([]);
   const [animDir,setAnimDir]=useState(null);
   const [touchStartX,setTouchStartX]=useState(null);
+  const [cardToast,setCardToast]=useState("");
 
   const styleDeck = SWIPE_ITEMS.map(card => ({
     ...card,
@@ -530,6 +531,7 @@ function QuizPage({ setPage, setStyleProfile, isMobile, pagePad }) {
   const currentStyle = done ? null : styleDeck[styleIndex];
   const currentPhotoIndex = currentStyle ? (photoIndexByStyle[currentStyle.id] || 0) : 0;
   const currentItem = currentStyle ? currentStyle.photos[currentPhotoIndex] : null;
+  const currentItemInSuitcase = currentItem ? suitcase.some(s=>s.id===currentItem.id) : false;
 
   function setPhotoIndex(styleId, nextIndex) {
     setPhotoIndexByStyle(prev => ({ ...prev, [styleId]: nextIndex }));
@@ -561,6 +563,21 @@ function QuizPage({ setPage, setStyleProfile, isMobile, pagePad }) {
       setAnimDir(null);
     }, 220);
   }
+
+  function likePiece(e) {
+    if (!currentItem) return;
+    e.stopPropagation();
+    if (!suitcase.some(s=>s.id===currentItem.id)) {
+      addToSuitcase(currentItem);
+      setCardToast("Added to Suitcase");
+    }
+  }
+
+  useEffect(() => {
+    if (!cardToast) return;
+    const t = setTimeout(() => setCardToast(""), 1500);
+    return () => clearTimeout(t);
+  }, [cardToast]);
 
   function onCardTouchStart(e) {
     setTouchStartX(e.changedTouches[0].clientX);
@@ -625,6 +642,11 @@ function QuizPage({ setPage, setStyleProfile, isMobile, pagePad }) {
             touchAction:"pan-y"
           }}
         >
+          {cardToast && (
+            <div style={{ position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",zIndex:5,background:"rgba(12,17,29,0.92)",border:"1px solid #334155",padding:"7px 10px",fontFamily:S.sans,fontSize:10,letterSpacing:"0.08em",textTransform:"uppercase",color:"#e2e8f0" }}>
+              {cardToast}
+            </div>
+          )}
           <div style={{ position:"absolute",left:10,right:10,top:10,display:"flex",gap:6,zIndex:3 }}>
             {currentStyle.photos.map((item,idx)=>(
               <div key={item.id} style={{ flex:1,height:3,background:idx<=currentPhotoIndex?"rgba(250,250,250,0.95)":"rgba(250,250,250,0.3)" }} />
@@ -643,6 +665,15 @@ function QuizPage({ setPage, setStyleProfile, isMobile, pagePad }) {
             <h2 style={{ fontFamily:S.serif,fontSize:30,fontWeight:600,color:"#f8fafc",lineHeight:0.98,marginBottom:6 }}>{currentItem.name}</h2>
             <p style={{ fontFamily:S.sans,fontSize:12,color:"rgba(255,255,255,0.88)" }}>{currentStyle.desc}</p>
           </div>
+          <button
+            onClick={likePiece}
+            onTouchStart={e=>e.stopPropagation()}
+            onTouchEnd={e=>e.stopPropagation()}
+            aria-label="Like this piece"
+            style={{ position:"absolute",right:14,bottom:14,zIndex:4,width:34,height:34,borderRadius:"50%",border:"1px solid rgba(255,255,255,0.28)",background:"rgba(2,6,23,0.48)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:currentItemInSuitcase?"#ef4444":"#f8fafc" }}
+          >
+            {currentItemInSuitcase ? "♥" : "♡"}
+          </button>
         </div>
 
         <div style={{ display:"flex",gap:24,marginTop:28 }}>
@@ -1079,7 +1110,7 @@ export default function App() {
   function render(){
     if(page==="home")          return <HomePage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad} preselectedStyle={browseStylePrefill} preselectedStyles={browseStylesPrefill} onPrefillConsumed={()=>{setBrowseStylePrefill(null); setBrowseStylesPrefill(null);}}/>;
-    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
+    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile} suitcase={suitcase} addToSuitcase={addToSuitcase} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="community")     return <CommunityPage setPage={nav} isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
     if(page==="sustainability") return <SustainabilityPage isMobile={isMobile} isTablet={isTablet} pagePad={pagePad}/>;
