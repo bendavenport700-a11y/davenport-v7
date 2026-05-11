@@ -353,6 +353,44 @@ function HomePage({ setPage }) {
         </div>
       </section>
 
+      {/* Founder Story */}
+      <section style={{ background:"#fff",borderTop:`1px solid ${S.stone}`,borderBottom:`1px solid ${S.stone}` }}>
+        <div style={{ maxWidth:1080,margin:"0 auto",display:"grid",gridTemplateColumns:"2fr 3fr",minHeight:560 }}>
+          <div style={{ position:"relative",overflow:"hidden",background:"#e8e3dc" }}>
+            <img
+              src="https://i.imgur.com/placeholder.jpg"
+              alt="Ben Davenport"
+              style={{ width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block" }}
+            />
+          </div>
+          <div style={{ padding:"80px 72px",display:"flex",flexDirection:"column",justifyContent:"center" }}>
+            <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:18,fontWeight:500 }}>Founder</p>
+            <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:32,lineHeight:1.05 }}>Why I Built This</h2>
+            <div style={{ display:"flex",flexDirection:"column",gap:18 }}>
+              <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.85 }}>
+                I'm Ben Davenport, a student at Penn State — and like most guys in college, I spent way too much money on clothes I didn't need, that didn't fit right, and that I had to haul back and forth every semester.
+              </p>
+              <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.85 }}>
+                It started in high school when I learned about fast fashion and the damage it does — to the environment, to our wallets, to the way we actually think about style. I kept thinking: there has to be a better way.
+              </p>
+              <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.85 }}>
+                When I got to college, I noticed something. Guys actually care about how they look. They want to dress well, show up with confidence, and stay current — but the whole system works against them. Impulse buys. Wrong sizes. Clothes you wear twice. Bags stuffed with stuff you forgot you even owned.
+              </p>
+              <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.85 }}>
+                Davenport is my answer to all of it. A curated wardrobe, sent to you, personalized to your style. Wear it as long as you want. If something doesn't fit, send it back. If you love a piece, buy it outright. When you're ready for something new, swap your whole wardrobe with a few clicks.
+              </p>
+              <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.85 }}>
+                Going on a trip? We'll build you a wardrobe for it. Starting an internship? We've got you. Just want to look good without thinking about it? That's exactly what this is for.
+              </p>
+              <p style={{ fontFamily:S.sans,fontSize:15,color:S.ink,lineHeight:1.85,fontWeight:500 }}>
+                I built this because I needed it. And I think you do too.
+              </p>
+            </div>
+            <p style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,color:S.ink,marginTop:36,fontStyle:"italic" }}>— Ben</p>
+          </div>
+        </div>
+      </section>
+
       {/* Brands marquee */}
       <section style={{ padding:"44px 0",background:S.ink,overflow:"hidden" }}>
         <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.22em",textTransform:"uppercase",color:"#9c8b78",textAlign:"center",marginBottom:24,fontWeight:600 }}>Brands in our catalog</p>
