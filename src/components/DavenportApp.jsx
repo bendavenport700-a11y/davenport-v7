@@ -358,7 +358,7 @@ function HomePage({ setPage }) {
         <div style={{ maxWidth:1080,margin:"0 auto",display:"grid",gridTemplateColumns:"2fr 3fr",minHeight:560 }}>
           <div style={{ position:"relative",overflow:"hidden",background:"#e8e3dc" }}>
             <img
-              src="https://i.imgur.com/placeholder.jpg"
+              src="https://i.imgur.com/1y1EZRn.png"
               alt="Ben Davenport"
               style={{ width:"100%",height:"100%",objectFit:"cover",objectPosition:"center top",display:"block" }}
             />
