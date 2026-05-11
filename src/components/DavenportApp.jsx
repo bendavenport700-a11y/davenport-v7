@@ -81,9 +81,9 @@ function dbItemToUi(row) {
     rentalCount: 0,
     color: "#e8e3dc",
     emoji: "👕",
-    occasion: "Campus",
-    style: "Minimal",
-    season: "Fall/Winter",
+    occasion: null,
+    style: null,
+    season: null,
     stock: row.stock || 1,
   };
 }
@@ -797,17 +797,17 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy }) {
   const [sort,setSort]=useState("price-asc");
 
   const condOrder = ["Like New","Good","Fair"];
-  const occasions  = ["All",...new Set(items.map(i=>i.occasion))];
-  const styles     = ["All",...new Set(items.map(i=>i.style))];
-  const seasons    = ["All",...new Set(items.map(i=>i.season))];
-  const categories = ["All",...new Set(items.map(i=>i.category))];
+  const occasions  = ["All",...new Set(items.map(i=>i.occasion).filter(Boolean))];
+  const styles     = ["All",...new Set(items.map(i=>i.style).filter(Boolean))];
+  const seasons    = ["All",...new Set(items.map(i=>i.season).filter(Boolean))];
+  const categories = ["All",...new Set(items.map(i=>i.category).filter(Boolean))];
 
   const filtered = items
     .filter(i=>!newOnly||i.condition==="Like New")
-    .filter(i=>filters.occasion==="All"||i.occasion===filters.occasion)
-    .filter(i=>filters.style==="All"||i.style===filters.style)
-    .filter(i=>filters.season==="All"||i.season===filters.season)
-    .filter(i=>filters.category==="All"||i.category===filters.category)
+    .filter(i=>filters.occasion==="All"||!i.occasion||i.occasion===filters.occasion)
+    .filter(i=>filters.style==="All"||!i.style||i.style===filters.style)
+    .filter(i=>filters.season==="All"||!i.season||i.season===filters.season)
+    .filter(i=>filters.category==="All"||!i.category||i.category===filters.category)
     .sort((a,b)=>sort==="price-asc"?getMonthlyPrice(a)-getMonthlyPrice(b):sort==="price-desc"?getMonthlyPrice(b)-getMonthlyPrice(a):condOrder.indexOf(a.condition)-condOrder.indexOf(b.condition));
 
   const pill=(value,active,onClick)=>(
