@@ -18,9 +18,10 @@ export async function POST(req) {
   const sql = getDb();
   try {
     const { name, brand, category, price, description, image_url, stock } = await req.json();
+    const rent_price = Math.round(price * 0.0834);
     const [item] = await sql`
-      INSERT INTO inventory (name, brand, category, price, description, image_url, stock)
-      VALUES (${name}, ${brand}, ${category}, ${price}, ${description}, ${image_url}, ${stock ?? 1})
+      INSERT INTO inventory (name, brand, category, price, rent_price, description, image_url, stock)
+      VALUES (${name}, ${brand}, ${category}, ${price}, ${rent_price}, ${description}, ${image_url}, ${stock ?? 1})
       RETURNING *
     `;
     return Response.json(item, { status: 201 });

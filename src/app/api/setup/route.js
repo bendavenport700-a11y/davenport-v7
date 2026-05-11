@@ -21,12 +21,15 @@ export async function GET() {
         brand TEXT,
         category TEXT,
         price INTEGER NOT NULL,
+        rent_price INTEGER DEFAULT 0,
         description TEXT,
         image_url TEXT,
         stock INTEGER DEFAULT 1,
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `;
+
+    await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS rent_price INTEGER DEFAULT 0`;
 
     await sql`
       CREATE TABLE IF NOT EXISTS orders (

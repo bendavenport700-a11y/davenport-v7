@@ -22,12 +22,11 @@ const CONDITIONS = {
   "Fair":     { label:"Fair",     multiplier:0.55, tagline:"Worn in, priced down."   },
 };
 
-// buyPrice = base retail value. monthlyPrice = 10% of buyPrice * condition multiplier.
 function getBuyPrice(item) {
   return Math.round(item.buyPrice * CONDITIONS[item.condition].multiplier);
 }
 function getMonthlyPrice(item) {
-  return Math.max(4, Math.round(item.buyPrice * CONDITIONS[item.condition].multiplier * 0.10));
+  return Math.max(4, Math.round(item.buyPrice * CONDITIONS[item.condition].multiplier * 0.0834));
 }
 function getWearRange(count) {
   if (count <= 5)  return `${count} wear${count !== 1 ? "s" : ""}`;
@@ -315,7 +314,7 @@ function MiniItemCard({ item, setPage }) {
         <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:4 }}>{item.brand}</p>
         <h3 style={{ fontFamily:S.serif,fontSize:17,fontWeight:600,color:S.ink,marginBottom:8,lineHeight:1.2 }}>{item.name}</h3>
         <span style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
-        <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:4 }}>{getWearRange(item.rentalCount)}</p>
+        <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:4 }}>Buy outright: ${getBuyPrice(item)}</p>
       </div>
     </div>
   );
@@ -896,9 +895,9 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy }) {
         <div style={{ padding:"15px 16px 10px" }}>
           <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:3 }}>{item.brand} · {item.category}</p>
           <h3 style={{ fontFamily:S.serif,fontSize:16,fontWeight:600,color:S.ink,marginBottom:6,lineHeight:1.2 }}>{item.name}</h3>
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline" }}>
+          <div>
             <span style={{ fontFamily:S.serif,fontSize:21,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
-            <span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>{getWearRange(item.rentalCount)}</span>
+            <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:3 }}>Buy outright: ${getBuyPrice(item)}</p>
           </div>
         </div>
       </div>
@@ -909,7 +908,7 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy }) {
         <button
           onClick={()=>item._dbId ? onBuy(item) : setPage(`item-${item.id}`)}
           style={{ width:"100%",background:"transparent",color:item._dbId?S.ink:S.muted,border:`1px solid ${item._dbId?S.ink:S.stone}`,cursor:"pointer",padding:"7px",fontFamily:S.sans,fontSize:10,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase" }}>
-          Buy ${getBuyPrice(item)}
+          Buy Outright ${getBuyPrice(item)}
         </button>
       </div>
     </div>
@@ -922,10 +921,8 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
   const [inSuitcase,setInSuitcase]=useState(suitcase.some(s=>s.id===itemId));
   if(!item) return <div style={{ padding:"120px 40px" }}><h2>Item not found</h2></div>;
 
-  const prices=Object.entries(CONDITIONS).map(([key,val])=>({
-    label:key, monthly:Math.max(4,Math.round(item.buyPrice*val.multiplier*0.10)),
-    buyP:Math.round(item.buyPrice*val.multiplier), tagline:val.tagline, current:key===item.condition
-  }));
+  const monthlyPrice=getMonthlyPrice(item);
+  const buyPrice=getBuyPrice(item);
   const related=items.filter(i=>i.id!==item.id&&(i.style===item.style||i.occasion===item.occasion)).slice(0,3);
 
   return (
@@ -939,22 +936,18 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
             <h1 style={{ fontFamily:S.serif,fontSize:42,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>{item.name}</h1>
             <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.8,marginBottom:36 }}>{item.description}</p>
             <div style={{ marginBottom:32 }}>
-              <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:S.tan,marginBottom:14 }}>Monthly pricing</p>
-              <div style={{ display:"flex",flexDirection:"column",gap:8 }}>
-                {prices.map(p=>(
-                  <div key={p.label} style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",background:p.current?S.ink:"#fff",border:`1px solid ${p.current?S.ink:S.stone}` }}>
-                    <div>
-                      <span style={{ fontFamily:S.sans,fontSize:12,fontWeight:600,color:p.current?S.cream:S.ink }}>{p.tagline}</span>
-                      {p.current&&<span style={{ fontFamily:S.sans,fontSize:10,color:"#9ca3af",marginLeft:10,fontStyle:"italic" }}>this piece</span>}
-                    </div>
-                    <div style={{ display:"flex",alignItems:"baseline",gap:4 }}>
-                      <span style={{ fontFamily:S.serif,fontSize:26,fontWeight:700,color:p.current?S.cream:S.ink }}>${p.monthly}</span>
-                      <span style={{ fontFamily:S.sans,fontSize:10,color:p.current?"#9ca3af":S.muted }}>/mo</span>
-                    </div>
-                  </div>
-                ))}
+              <div style={{ padding:"20px 22px",background:S.ink,marginBottom:10 }}>
+                <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:"#9ca3af",marginBottom:6 }}>Monthly rental</p>
+                <div style={{ display:"flex",alignItems:"baseline",gap:4 }}>
+                  <span style={{ fontFamily:S.serif,fontSize:38,fontWeight:700,color:S.cream }}>${monthlyPrice}</span>
+                  <span style={{ fontFamily:S.sans,fontSize:12,color:"#9ca3af" }}>/mo</span>
+                </div>
               </div>
-              <p style={{ fontFamily:S.sans,fontSize:11,color:S.muted,marginTop:10 }}>{getWearRange(item.rentalCount)}. Every item is inspected and verified before it ships.</p>
+              <div style={{ padding:"16px 22px",background:"#fff",border:`1px solid ${S.stone}` }}>
+                <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:4 }}>Buy outright</p>
+                <span style={{ fontFamily:S.serif,fontSize:24,fontWeight:600,color:S.ink }}>${buyPrice}</span>
+              </div>
+              <p style={{ fontFamily:S.sans,fontSize:11,color:S.muted,marginTop:10 }}>Every item is inspected and verified before it ships.</p>
             </div>
             <button onClick={()=>{ addToSuitcase(item); setInSuitcase(true); }} style={{ width:"100%",background:inSuitcase?"#f0ede8":S.ink,color:inSuitcase?"#6b5e4e":S.cream,border:"none",cursor:inSuitcase?"default":"pointer",padding:"16px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
               {inSuitcase?"✓ In Your Suitcase":"Add to Suitcase"}
@@ -969,7 +962,7 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
               onClick={()=>item._dbId&&onBuy(item)}
               disabled={!item._dbId}
               style={{ width:"100%",background:"transparent",color:item._dbId?S.ink:S.muted,border:`1px solid ${item._dbId?S.ink:S.stone}`,cursor:item._dbId?"pointer":"not-allowed",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",marginTop:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
-              Buy This Piece ${getBuyPrice(item)}
+              Buy Outright ${buyPrice}
             </button>
             <p style={{ fontFamily:S.sans,fontSize:11,color:S.muted,textAlign:"center",marginTop:8 }}>One-time purchase. Yours to keep.</p>
           </div>
@@ -1127,7 +1120,6 @@ function QuizPage({ setPage, setStyleProfile }) {
 
 // ─── SUITCASE ─────────────────────────────────────────────────────────────────
 function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
-  const [acted,setActed]=useState({});
   const total=suitcase.reduce((s,i)=>s+getMonthlyPrice(i),0);
   const suggested=items.filter(i=>!suitcase.some(s=>s.id===i.id)).slice(0,4);
 
@@ -1142,12 +1134,6 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
       </div>
     </div>
   );
-
-  const actionButtons = [
-    { label:"Swap",        icon:"⇄", color:"#1e3a5f", bg:"#eff6ff" },
-    { label:"Upgrade",     icon:"↑", color:"#166534", bg:"#f0fdf4" },
-    { label:"Change Size", icon:"⊡", color:"#854d0e", bg:"#fefce8" },
-  ];
 
   return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
@@ -1174,17 +1160,6 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
                 </div>
                 {/* Action row */}
                 <div style={{ display:"flex",borderTop:`1px solid ${S.stone}` }}>
-                  {actionButtons.map((btn,i)=>(
-                    <>
-                      <button key={btn.label}
-                        onClick={()=>setActed(a=>({...a,[`${item.id}-${btn.label}`]:true}))}
-                        style={{ flex:1,background:acted[`${item.id}-${btn.label}`]?S.cream:btn.bg,color:acted[`${item.id}-${btn.label}`]?S.muted:btn.color,border:"none",cursor:"pointer",padding:"9px 0",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.07em",textTransform:"uppercase",transition:"all 0.15s" }}>
-                        {acted[`${item.id}-${btn.label}`]?`✓ ${btn.label}`:`${btn.icon} ${btn.label}`}
-                      </button>
-                      {i<actionButtons.length-1&&<div style={{ width:1,background:S.stone }}/>}
-                    </>
-                  ))}
-                  <div style={{ width:1,background:S.stone }}/>
                   <button onClick={()=>removeFromSuitcase(item.id)} style={{ flex:1,background:"transparent",color:"#ef4444",border:"none",cursor:"pointer",padding:"9px 0",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.07em",textTransform:"uppercase" }}>
                     ✕ Remove
                   </button>

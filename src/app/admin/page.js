@@ -134,7 +134,15 @@ export default function AdminPage() {
             <div style={{ gridColumn: "1 / -1" }}>{field("Name *", "name", "text", "Ivory Oxford Shirt")}</div>
             {field("Brand", "brand", "text", "J.Crew")}
             {field("Category", "category", "text", "Oxford Shirt")}
-            {field("Price (USD) *", "price", "number", "85")}
+            {field("Buy Price (USD) *", "price", "number", "85")}
+            {form.price && !isNaN(parseFloat(form.price)) && (
+              <div style={{ display:"flex",flexDirection:"column",gap:6 }}>
+                <label style={{ fontFamily:S.sans,fontSize:11,fontWeight:600,color:S.tan,letterSpacing:"0.06em",textTransform:"uppercase" }}>Rent Preview</label>
+                <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted,padding:"10px 14px",background:"#f9fafb",border:`1px solid ${S.stone}`,borderRadius:6 }}>
+                  ${Math.round(parseFloat(form.price) * 0.0834)}/mo (8.34% of buy price)
+                </p>
+              </div>
+            )}
             {field("Stock", "stock", "number", "1")}
             <div style={{ gridColumn: "1 / -1" }}>{field("Image URL", "image_url", "text", "https://...")}</div>
             <div style={{ gridColumn: "1 / -1" }}>
