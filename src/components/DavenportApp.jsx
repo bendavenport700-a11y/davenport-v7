@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInButton, useUser } from "@clerk/nextjs";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');`;
 
@@ -833,10 +833,31 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
   );
 }
 
+function AuthGate() {
+  return (
+    <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream,display:"flex",alignItems:"center",justifyContent:"center" }}>
+      <div style={{ textAlign:"center",maxWidth:420,padding:"0 24px" }}>
+        <p style={{ fontFamily:S.serif,fontSize:32,fontWeight:600,letterSpacing:"0.02em",color:S.ink,marginBottom:24 }}>Davenport</p>
+        <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:16 }}>Members Only</h2>
+        <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,lineHeight:1.75,marginBottom:36 }}>Sign in to browse the collection.</p>
+        <SignInButton mode="modal">
+          <button style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"14px 40px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>
+            Sign In
+          </button>
+        </SignInButton>
+      </div>
+    </div>
+  );
+}
+
 function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading }) {
+  const { isSignedIn, isLoaded } = useUser();
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <AuthGate />;
 
   const condOrder = ["Like New","Good","Fair"];
   const occasions  = ["All",...new Set(items.map(i=>i.occasion).filter(Boolean))];
@@ -1158,7 +1179,11 @@ function QuizPage({ setPage, setStyleProfile }) {
 
 // ─── SUITCASE ─────────────────────────────────────────────────────────────────
 function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
+  const { isSignedIn, isLoaded } = useUser();
   const total=suitcase.reduce((s,i)=>s+getMonthlyPrice(i),0);
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <AuthGate />;
   const suggested=items.filter(i=>!suitcase.some(s=>s.id===i.id)).slice(0,4);
 
   if(suitcase.length===0) return (
