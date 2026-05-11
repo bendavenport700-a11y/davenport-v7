@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { UserButton } from "@clerk/nextjs";
+import { useUser, UserButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+
+const ALLOWED_EMAIL = "benjamindavenport700@gmail.com";
 
 const S = {
   serif: "'Cormorant Garamond', Georgia, serif",
@@ -16,19 +19,28 @@ const S = {
 const EMPTY = { name: "", brand: "", category: "", price: "", description: "", image_url: "", stock: "1" };
 
 export default function AdminPage() {
+  const { user, isLoaded } = useUser();
+  const router = useRouter();
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!user || user.primaryEmailAddress?.emailAddress !== ALLOWED_EMAIL) {
+      router.replace("/");
+      return;
+    }
+    load();
+  }, [isLoaded, user]);
+
   async function load() {
     const res = await fetch("/api/inventory");
     const data = await res.json();
     setItems(Array.isArray(data) ? data : []);
   }
-
-  useEffect(() => { load(); }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -44,7 +56,7 @@ export default function AdminPage() {
       if (!res.ok) { const d = await res.json(); setError(d.error ?? "Failed to add item."); return; }
       setForm(EMPTY);
       await load();
-    } catch (e) {
+    } catch {
       setError("Something went wrong.");
     } finally {
       setSaving(false);
@@ -64,6 +76,18 @@ export default function AdminPage() {
     } finally {
       setDeleting(null);
     }
+  }
+
+  if (!isLoaded) {
+    return (
+      <div style={{ minHeight: "100vh", background: S.cream, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted }}>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user || user.primaryEmailAddress?.emailAddress !== ALLOWED_EMAIL) {
+    return null;
   }
 
   const field = (label, key, type = "text", placeholder = "") => (
@@ -88,7 +112,7 @@ export default function AdminPage() {
           Davenport
         </a>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <a href="/shop" style={{ fontFamily: S.sans, fontSize: 13, color: S.muted, textDecoration: "none" }}>Shop</a>
+          <a href="/" style={{ fontFamily: S.sans, fontSize: 13, color: S.muted, textDecoration: "none" }}>Home</a>
           <UserButton afterSignOutUrl="/" />
         </div>
       </header>
