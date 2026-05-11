@@ -35,7 +35,7 @@ function getWearRange(count) {
   return "30+ wears";
 }
 
-const ITEMS = [
+const STATIC_ITEMS = [
   { id:1,  name:"Ivory Oxford Shirt",        brand:"J.Crew",         category:"Oxford Shirt", occasion:"Campus",    style:"Preppy",    season:"Fall/Winter",  buyPrice:85,  condition:"Like New", rentalCount:3,  color:"#f5f0e8", emoji:"👕", description:"A crisp ivory oxford with a relaxed fit. Works everywhere, all semester." },
   { id:2,  name:"Charcoal Merino Crewneck",  brand:"Uniqlo",         category:"Crewneck",     occasion:"Campus",    style:"Minimal",   season:"Fall/Winter",  buyPrice:70,  condition:"Good",     rentalCount:9,  color:"#4b5563", emoji:"🧥", description:"Ultrasoft merino that drapes well and layers even better." },
   { id:3,  name:"Slim Dark Wash Denim",      brand:"J.Crew",         category:"Denim",        occasion:"Going Out", style:"Minimal",   season:"Fall/Winter",  buyPrice:110, condition:"Like New", rentalCount:2,  color:"#1e293b", emoji:"👖", description:"A versatile dark rinse slim jean. Goes from class to dinner without trying." },
@@ -67,6 +67,39 @@ const ITEMS = [
   { id:38, name:"Cream Fleece",              brand:"Patagonia",      category:"Fleece",       occasion:"Weekend",   style:"Minimal",   season:"Fall/Winter",  buyPrice:135, condition:"Good",     rentalCount:8,  color:"#f5f0e8", emoji:"🧥", description:"Warm, packable, and clean-looking. The fleece that goes from trail to town." },
   { id:39, name:"Navy Shorts",               brand:"Lululemon",      category:"Shorts",       occasion:"Campus",    style:"Minimal",   season:"Spring/Summer",buyPrice:68,  condition:"Like New", rentalCount:3,  color:"#1e3a5f", emoji:"🩳", description:"7-inch inseam, clean fit, zero effort. The only shorts you need." },
 ];
+
+function dbItemToUi(row) {
+  return {
+    id: 10000 + row.id,
+    _dbId: row.id,
+    name: row.name,
+    brand: row.brand || "",
+    category: row.category || "Other",
+    description: row.description || "",
+    buyPrice: Math.round((row.price || 0) / 100),
+    condition: "Like New",
+    rentalCount: 0,
+    color: "#e8e3dc",
+    emoji: "👕",
+    occasion: "Campus",
+    style: "Minimal",
+    season: "Fall/Winter",
+    stock: row.stock || 1,
+  };
+}
+
+function mergeItems(staticItems, dbRows) {
+  const result = staticItems.map(s => ({ ...s }));
+  dbRows.forEach(row => {
+    const match = staticItems.findIndex(s => s.name.toLowerCase() === row.name.toLowerCase());
+    if (match >= 0) {
+      result[match] = { ...result[match], _dbId: row.id };
+    } else {
+      result.push(dbItemToUi(row));
+    }
+  });
+  return result;
+}
 
 // ─── WARDROBES ────────────────────────────────────────────────────────────────
 // Each wardrobe is a Davenport-curated seasonal collection.
@@ -285,7 +318,7 @@ function MiniItemCard({ item, setPage }) {
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 function HomePage({ setPage }) {
-  const featured = ITEMS.filter(i=>i.condition==="Like New").slice(0,3);
+  const featured = STATIC_ITEMS.filter(i=>i.condition==="Like New").slice(0,3);
 
   return (
     <div>
@@ -405,7 +438,7 @@ function HomePage({ setPage }) {
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16 }}>
             {WARDROBES.slice(0,3).map(w=>{
-              const pieces = w.itemIds.map(id=>ITEMS.find(i=>i.id===id)).filter(Boolean);
+              const pieces = w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
               const monthlySum = pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
               return (
                 <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} dark={true}/>
@@ -599,7 +632,7 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
       <div style={{ maxWidth:1080,margin:"0 auto",padding:"40px 40px 80px" }}>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:28 }}>
           {filtered.map(w=>{
-            const pieces=w.itemIds.map(id=>ITEMS.find(i=>i.id===id)).filter(Boolean);
+            const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
             const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
             return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage}/>;
           })}
@@ -615,7 +648,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
   const [view, setView] = useState("wardrobe"); // "wardrobe" | "pieces"
   if(!wardrobe) return <div style={{ padding:"120px 40px" }}><h2>Wardrobe not found</h2></div>;
 
-  const pieces = wardrobe.itemIds.map(id=>ITEMS.find(i=>i.id===id)).filter(Boolean);
+  const pieces = wardrobe.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
   const monthlySum = pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
   const allInSuitcase = pieces.every(p=>suitcase.some(s=>s.id===p.id));
 
@@ -721,7 +754,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
             <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.16em",textTransform:"uppercase",color:S.tan,marginBottom:28 }}>Pick what you want</p>
             <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:22 }}>
               {pieces.map(p=>(
-                <ItemCard key={p.id} item={p} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===p.id)}/>
+                <ItemCard key={p.id} item={p} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===p.id)} onBuy={()=>{}}/>
               ))}
             </div>
           </div>
@@ -734,7 +767,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
             <h2 style={{ fontFamily:S.serif,fontSize:34,fontWeight:600,color:S.ink,marginBottom:32 }}>You might also like.</h2>
             <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:24 }}>
               {related.map(w=>{
-                const wPieces=w.itemIds.map(id=>ITEMS.find(i=>i.id===id)).filter(Boolean);
+                const wPieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
                 const wSum=wPieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
                 return (
                   <div key={w.id} onClick={()=>setPage(`wardrobe-${w.id}`)} style={{ cursor:"pointer",background:"#fff",border:`1px solid ${S.stone}`,display:"flex",gap:0,overflow:"hidden" }}>
@@ -758,18 +791,18 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
   );
 }
 
-function BrowsePage({ setPage, addToSuitcase, suitcase }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy }) {
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
 
   const condOrder = ["Like New","Good","Fair"];
-  const occasions  = ["All",...new Set(ITEMS.map(i=>i.occasion))];
-  const styles     = ["All",...new Set(ITEMS.map(i=>i.style))];
-  const seasons    = ["All",...new Set(ITEMS.map(i=>i.season))];
-  const categories = ["All",...new Set(ITEMS.map(i=>i.category))];
+  const occasions  = ["All",...new Set(items.map(i=>i.occasion))];
+  const styles     = ["All",...new Set(items.map(i=>i.style))];
+  const seasons    = ["All",...new Set(items.map(i=>i.season))];
+  const categories = ["All",...new Set(items.map(i=>i.category))];
 
-  const filtered = ITEMS
+  const filtered = items
     .filter(i=>!newOnly||i.condition==="Like New")
     .filter(i=>filters.occasion==="All"||i.occasion===filters.occasion)
     .filter(i=>filters.style==="All"||i.style===filters.style)
@@ -826,14 +859,14 @@ function BrowsePage({ setPage, addToSuitcase, suitcase }) {
 
       <div style={{ padding:"36px 40px",display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
         {filtered.map(item=>(
-          <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)}/>
+          <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} onBuy={onBuy}/>
         ))}
       </div>
     </div>
   );
 }
 
-function ItemCard({ item, setPage, addToSuitcase, inSuitcase }) {
+function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy }) {
   const [hov,setHov]=useState(false);
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
@@ -855,7 +888,9 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase }) {
         <button onClick={()=>addToSuitcase(item)} style={{ width:"100%",background:inSuitcase?"#f0ede8":S.ink,color:inSuitcase?"#6b5e4e":S.cream,border:"none",cursor:inSuitcase?"default":"pointer",padding:"10px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6 }}>
           {inSuitcase?"✓ In Suitcase":"+ Add to Suitcase"}
         </button>
-        <button onClick={()=>setPage(`item-${item.id}`)} style={{ width:"100%",background:"transparent",color:S.muted,border:`1px solid ${S.stone}`,cursor:"pointer",padding:"7px",fontFamily:S.sans,fontSize:10,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase" }}>
+        <button
+          onClick={()=>item._dbId ? onBuy(item) : setPage(`item-${item.id}`)}
+          style={{ width:"100%",background:"transparent",color:item._dbId?S.ink:S.muted,border:`1px solid ${item._dbId?S.ink:S.stone}`,cursor:"pointer",padding:"7px",fontFamily:S.sans,fontSize:10,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase" }}>
           Buy ${getBuyPrice(item)}
         </button>
       </div>
@@ -864,8 +899,8 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase }) {
 }
 
 // ─── ITEM DETAIL ──────────────────────────────────────────────────────────────
-function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
-  const item=ITEMS.find(i=>i.id===itemId);
+function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy }) {
+  const item=items.find(i=>i.id===itemId);
   const [inSuitcase,setInSuitcase]=useState(suitcase.some(s=>s.id===itemId));
   if(!item) return <div style={{ padding:"120px 40px" }}><h2>Item not found</h2></div>;
 
@@ -873,7 +908,7 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
     label:key, monthly:Math.max(4,Math.round(item.buyPrice*val.multiplier*0.10)),
     buyP:Math.round(item.buyPrice*val.multiplier), tagline:val.tagline, current:key===item.condition
   }));
-  const related=ITEMS.filter(i=>i.id!==item.id&&(i.style===item.style||i.occasion===item.occasion)).slice(0,3);
+  const related=items.filter(i=>i.id!==item.id&&(i.style===item.style||i.occasion===item.occasion)).slice(0,3);
 
   return (
     <div style={{ paddingTop:60,background:S.cream,minHeight:"100vh" }}>
@@ -912,7 +947,10 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase }) {
               <span style={{ fontFamily:S.sans,fontSize:10,color:S.muted,letterSpacing:"0.1em",textTransform:"uppercase" }}>or</span>
               <div style={{ flex:1,height:1,background:S.stone }}/>
             </div>
-            <button style={{ width:"100%",background:"transparent",color:S.ink,border:`1px solid ${S.ink}`,cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",marginTop:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
+            <button
+              onClick={()=>item._dbId&&onBuy(item)}
+              disabled={!item._dbId}
+              style={{ width:"100%",background:"transparent",color:item._dbId?S.ink:S.muted,border:`1px solid ${item._dbId?S.ink:S.stone}`,cursor:item._dbId?"pointer":"not-allowed",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",marginTop:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8 }}>
               Buy This Piece ${getBuyPrice(item)}
             </button>
             <p style={{ fontFamily:S.sans,fontSize:11,color:S.muted,textAlign:"center",marginTop:8 }}>One-time purchase. Yours to keep.</p>
@@ -950,7 +988,7 @@ function QuizPage({ setPage, setStyleProfile }) {
 
   if(done) {
     const [resultView, setResultView] = useState("pieces");
-    const picks = ITEMS.filter(i=>i.condition==="Like New").slice(0,4);
+    const picks = STATIC_ITEMS.filter(i=>i.condition==="Like New").slice(0,4);
     // Match wardrobes — just show all for now, in future filter by swipes
     const matchedWardrobes = WARDROBES.slice(0,3);
 
@@ -977,7 +1015,7 @@ function QuizPage({ setPage, setStyleProfile }) {
                 <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:20 }}>Suggested Outfits</p>
                 <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:24 }}>
                   {OUTFITS.slice(0,2).map(outfit=>{
-                    const pieces=outfit.itemIds.map(id=>ITEMS.find(i=>i.id===id)).filter(Boolean);
+                    const pieces=outfit.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
                     const total=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
                     return (
                       <div key={outfit.id} style={{ background:"#fff",border:`1px solid ${S.stone}`,padding:"28px" }}>
@@ -1010,7 +1048,7 @@ function QuizPage({ setPage, setStyleProfile }) {
               <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.18em",textTransform:"uppercase",color:S.tan,marginBottom:20 }}>Wardrobes matched to your style</p>
               <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:24 }}>
                 {matchedWardrobes.map(w=>{
-                  const wPieces=w.itemIds.map(id=>ITEMS.find(i=>i.id===id)).filter(Boolean);
+                  const wPieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
                   const wSum=wPieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
                   return (
                     <div key={w.id} style={{ background:"#fff",border:`1px solid ${S.stone}`,overflow:"hidden" }}>
@@ -1070,10 +1108,10 @@ function QuizPage({ setPage, setStyleProfile }) {
 }
 
 // ─── SUITCASE ─────────────────────────────────────────────────────────────────
-function SuitcasePage({ suitcase, removeFromSuitcase, setPage }) {
+function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
   const [acted,setActed]=useState({});
   const total=suitcase.reduce((s,i)=>s+getMonthlyPrice(i),0);
-  const suggested=ITEMS.filter(i=>!suitcase.some(s=>s.id===i.id)).slice(0,4);
+  const suggested=items.filter(i=>!suitcase.some(s=>s.id===i.id)).slice(0,4);
 
   if(suitcase.length===0) return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center" }}>
@@ -1415,7 +1453,7 @@ function CommunityPage({ setPage }) {
                 {/* Tagged pieces */}
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
                   {post.items.map(item => (
-                    <button key={item} onClick={() => { const found = ITEMS.find(i=>i.name===item); if(found) setPage(`item-${found.id}`); }}
+                    <button key={item} onClick={() => { const found = STATIC_ITEMS.find(i=>i.name===item); if(found) setPage(`item-${found.id}`); }}
                       style={{ background:S.cream, border:`1px solid ${S.stone}`, padding:"3px 10px", fontFamily:S.sans, fontSize:10, color:S.tan, cursor:"pointer", letterSpacing:"0.04em" }}>
                       {item}
                     </button>
@@ -1640,6 +1678,26 @@ export default function App() {
   const [suitcase,setSuitcase]=useState([]);
   const [styleProfile,setStyleProfile]=useState([]);
   const [isLoggedIn,setIsLoggedIn]=useState(false);
+  const [items,setItems]=useState(STATIC_ITEMS);
+  const [buying,setBuying]=useState(null);
+
+  useEffect(()=>{
+    fetch("/api/inventory")
+      .then(r=>r.json())
+      .then(rows=>{ if(Array.isArray(rows)&&rows.length>0) setItems(mergeItems(STATIC_ITEMS,rows)); })
+      .catch(()=>{});
+  },[]);
+
+  async function handleBuy(item) {
+    if(!item._dbId||buying) return;
+    setBuying(item._dbId);
+    try {
+      const res=await fetch("/api/checkout",{ method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({itemId:item._dbId}) });
+      const data=await res.json();
+      if(data.url) window.location.href=data.url;
+    } catch(e){}
+    setBuying(null);
+  }
 
   function addToSuitcase(item){ setSuitcase(s=>s.some(i=>i.id===item.id)?s:[...s,item]); }
   function removeFromSuitcase(id){ setSuitcase(s=>s.filter(i=>i.id!==id)); }
@@ -1653,16 +1711,16 @@ export default function App() {
   function render(){
     if(page==="waitlist")      return <WaitlistPage setPage={nav}/>;
     if(page==="home")          return <HomePage setPage={nav}/>;
-    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
+    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy}/>;
     if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
     if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile}/>;
-    if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav}/>;
+    if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items}/>;
     if(page==="community")     return <CommunityPage setPage={nav}/>;
     if(page==="sustainability") return <SustainabilityPage/>;
     if(page==="auth-signup")   return <AuthPage mode="signup" setIsLoggedIn={setIsLoggedIn} setPage={setPage}/>;
     if(page==="auth-login")    return <AuthPage mode="login"  setIsLoggedIn={setIsLoggedIn} setPage={setPage}/>;
     if(page==="auth-gate")     return <AuthGatePage setPage={setPage}/>;
-    if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
+    if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy}/>;
     if(page.startsWith("wardrobe-")) return <WardrobeDetailPage wardrobeId={page.replace("wardrobe-","")} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
     return <HomePage setPage={nav}/>;
   }
