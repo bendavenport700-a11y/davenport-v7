@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SignInButton } from "@clerk/nextjs";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');`;
 
@@ -239,9 +240,11 @@ function Nav({ page, setPage, suitcase }) {
                 {label}
               </button>
             ))}
-            <button onClick={()=>go("waitlist")} style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"9px 18px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase" }}>
-              Join Waitlist
-            </button>
+            <SignInButton mode="modal">
+              <button style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"9px 18px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase" }}>
+                Sign In
+              </button>
+            </SignInButton>
             <button onClick={()=>go("suitcase")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"9px 20px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,transition:"background 0.2s" }}
               onMouseEnter={e=>e.currentTarget.style.background="#d4b896"}
               onMouseLeave={e=>e.currentTarget.style.background=S.gold}>
@@ -282,9 +285,11 @@ function Nav({ page, setPage, suitcase }) {
                 {label}
               </button>
             ))}
-            <button onClick={()=>go("waitlist")} style={{ marginTop:16,background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",width:"100%" }}>
-              Join Waitlist
-            </button>
+            <SignInButton mode="modal">
+              <button style={{ marginTop:16,background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",width:"100%" }}>
+                Sign In
+              </button>
+            </SignInButton>
           </div>
         </div>
       )}
@@ -506,17 +511,17 @@ function HomePage({ setPage }) {
         </div>
       </section>
 
-      {/* Waitlist CTA */}
+      {/* Sign In CTA */}
       <section style={{ padding:"88px 40px", background:S.ink }}>
-        <div style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns:"1fr 1fr", gap:80, alignItems:"center" }}>
-          <div>
-            <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:16 }}>Early Access</p>
-            <h2 style={{ fontFamily:S.serif,fontSize:"clamp(36px,5vw,60px)",fontWeight:600,color:S.cream,letterSpacing:"-1.5px",lineHeight:0.95,marginBottom:20 }}>Be the first to get the box.</h2>
-            <p style={{ fontFamily:S.sans,fontSize:15,color:"#6b7280",lineHeight:1.8,maxWidth:400 }}>We're launching soon. Join the waitlist and we'll reach out when Davenport is live — before anyone else gets access.</p>
-          </div>
-          <div>
-            <WaitlistInline/>
-          </div>
+        <div style={{ maxWidth:680, margin:"0 auto", textAlign:"center" }}>
+          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:20 }}>Members</p>
+          <h2 style={{ fontFamily:S.serif,fontSize:"clamp(36px,5vw,60px)",fontWeight:600,color:S.cream,letterSpacing:"-1.5px",lineHeight:0.95,marginBottom:20 }}>Ready to upgrade your wardrobe?</h2>
+          <p style={{ fontFamily:S.sans,fontSize:15,color:"#6b7280",lineHeight:1.8,maxWidth:440,margin:"0 auto 40px" }}>Create an account to start building your Suitcase and buy pieces directly from the Davenport catalog.</p>
+          <SignInButton mode="modal">
+            <button style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"16px 44px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
+              Sign In / Create Account
+            </button>
+          </SignInButton>
         </div>
       </section>
 
@@ -791,7 +796,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
   );
 }
 
-function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading }) {
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
@@ -857,11 +862,24 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy }) {
         <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,marginTop:16 }}>{filtered.length} piece{filtered.length!==1?"s":""} found</p>
       </div>
 
-      <div style={{ padding:"36px 40px",display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
-        {filtered.map(item=>(
-          <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} onBuy={onBuy}/>
-        ))}
-      </div>
+      {loading ? (
+        <div style={{ padding:"88px 40px",textAlign:"center" }}>
+          <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted }}>Loading catalog...</p>
+        </div>
+      ) : items.length===0 ? (
+        <div style={{ padding:"88px 40px",textAlign:"center" }}>
+          <p style={{ fontFamily:S.serif,fontSize:42,fontWeight:300,color:S.tan,fontStyle:"italic",marginBottom:16 }}>Coming soon.</p>
+          <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted,maxWidth:360,margin:"0 auto" }}>The catalog is being assembled. Check back soon.</p>
+        </div>
+      ) : (
+        <div style={{ padding:"36px 40px",display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
+          {filtered.length===0 ? (
+            <p style={{ gridColumn:"1/-1",fontFamily:S.sans,fontSize:14,color:S.muted,padding:"40px 0",textAlign:"center" }}>No items match the current filters.</p>
+          ) : filtered.map(item=>(
+            <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} onBuy={onBuy}/>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1488,146 +1506,6 @@ function CommunityPage({ setPage }) {
 }
 
 
-// ─── WAITLIST INLINE (used on homepage) ──────────────────────────────────────
-function WaitlistInline() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function submit() {
-    if (!email || !email.includes("@")) { setError("Enter a valid email."); return; }
-    setError(""); setLoading(true);
-    try {
-      await fetch("https://formspree.io/f/xlgpeork", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ name, email })
-      });
-      setDone(true);
-    } catch(e) { setError("Something went wrong. Try again."); }
-    setLoading(false);
-  }
-
-  if (done) return (
-    <div style={{ background:"#111", border:"1px solid #1f2937", padding:"36px 32px" }}>
-      <div style={{ fontSize:32, marginBottom:16 }}>✓</div>
-      <p style={{ fontFamily:S.serif,fontSize:26,fontWeight:600,color:S.cream,marginBottom:8 }}>You're on the list.</p>
-      <p style={{ fontFamily:S.sans,fontSize:13,color:"#6b7280",lineHeight:1.75 }}>We'll reach out as soon as Davenport is live. Follow <strong style={{color:S.gold}}>@davenportwardrobe</strong> for updates.</p>
-    </div>
-  );
-
-  return (
-    <div style={{ background:"#111", border:"1px solid #1f2937", padding:"36px 32px" }}>
-      <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.14em",textTransform:"uppercase",color:"#4b5563",marginBottom:20 }}>Join the waitlist</p>
-      <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
-        style={{ width:"100%",background:"#0a0a0a",border:"1px solid #1f2937",outline:"none",padding:"13px 16px",fontFamily:S.sans,fontSize:14,color:S.cream,marginBottom:10,boxSizing:"border-box" }}/>
-      <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Your email" type="email"
-        onKeyDown={e=>e.key==="Enter"&&submit()}
-        style={{ width:"100%",background:"#0a0a0a",border:`1px solid ${error?"#ef4444":"#1f2937"}`,outline:"none",padding:"13px 16px",fontFamily:S.sans,fontSize:14,color:S.cream,marginBottom:10,boxSizing:"border-box" }}/>
-      {error && <p style={{ fontFamily:S.sans,fontSize:11,color:"#ef4444",marginBottom:10 }}>{error}</p>}
-      <button onClick={submit} disabled={loading}
-        style={{ width:"100%",background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",opacity:loading?0.7:1 }}>
-        {loading ? "Joining..." : "Join Waitlist"}
-      </button>
-      <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151",marginTop:12,textAlign:"center" }}>No spam. We'll only reach out when we're live.</p>
-    </div>
-  );
-}
-
-// ─── WAITLIST PAGE ────────────────────────────────────────────────────────────
-function WaitlistPage({ setPage }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function submit() {
-    if (!email || !email.includes("@")) { setError("Enter a valid email."); return; }
-    setError(""); setLoading(true);
-    try {
-      await fetch("https://formspree.io/f/xlgpeork", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ name, email })
-      });
-      setDone(true);
-    } catch(e) { setError("Something went wrong. Try again."); }
-    setLoading(false);
-  }
-
-  return (
-    <div style={{ paddingTop:60, minHeight:"100vh", background:S.ink }}>
-      <div style={{ maxWidth:1080, margin:"0 auto", padding:"80px 40px", display:"grid", gridTemplateColumns:"1fr 1fr", gap:80, alignItems:"center" }}>
-
-        {/* Left — copy */}
-        <div>
-          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.22em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:24,fontWeight:500 }}>Early Access</p>
-          <h1 style={{ fontFamily:S.serif,fontSize:"clamp(48px,6vw,76px)",fontWeight:600,lineHeight:0.92,letterSpacing:"-2.5px",color:S.cream,marginBottom:28 }}>
-            Be the first<br/>to get<br/><em style={{fontStyle:"italic",color:S.gold}}>the box.</em>
-          </h1>
-          <p style={{ fontFamily:S.sans,fontSize:16,color:"#6b7280",lineHeight:1.85,maxWidth:400,marginBottom:40 }}>
-            Davenport is launching soon. Join the waitlist and you'll be the first to know when we go live — before anyone else gets access.
-          </p>
-          <div style={{ display:"flex",flexDirection:"column",gap:16,borderTop:"1px solid #1a1a1a",paddingTop:32 }}>
-            {[["📦","A box shipped to your door","Pick your pieces. We pack and ship them straight to you."],["👕","Wear it. Swap it. Own it.","Keep what you love. Send back what you don't. Simple."],["💰","Pay only for what's in your Suitcase","No commitments. No minimums. Cancel anytime."]].map(([emoji,title,desc])=>(
-              <div key={title} style={{ display:"flex",gap:16,alignItems:"flex-start" }}>
-                <div style={{ fontSize:20,flexShrink:0,marginTop:2 }}>{emoji}</div>
-                <div>
-                  <p style={{ fontFamily:S.sans,fontSize:13,fontWeight:600,color:S.cream,marginBottom:3 }}>{title}</p>
-                  <p style={{ fontFamily:S.sans,fontSize:12,color:"#4b5563",lineHeight:1.65 }}>{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right — form */}
-        <div>
-          {done ? (
-            <div style={{ background:"#111",border:"1px solid #1f2937",padding:"52px 44px",textAlign:"center" }}>
-              <div style={{ fontSize:48,marginBottom:20 }}>✓</div>
-              <h2 style={{ fontFamily:S.serif,fontSize:38,fontWeight:600,color:S.cream,letterSpacing:"-1px",marginBottom:14 }}>You're on the list.</h2>
-              <p style={{ fontFamily:S.sans,fontSize:14,color:"#6b7280",lineHeight:1.8,marginBottom:32 }}>We'll reach out as soon as Davenport is live at your location. Follow us for a sneak peek at what's coming.</p>
-              <div style={{ display:"flex",gap:10,justifyContent:"center",marginBottom:24 }}>
-                <a href="https://instagram.com/davenportwardrobe" target="_blank" rel="noreferrer"
-                  style={{ display:"flex",alignItems:"center",gap:6,fontFamily:S.sans,fontSize:11,color:"#9ca3af",textDecoration:"none",border:"1px solid #1f2937",padding:"8px 16px" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-                  @davenportwardrobe
-                </a>
-                <a href="https://tiktok.com/@davenportwardrobe" target="_blank" rel="noreferrer"
-                  style={{ display:"flex",alignItems:"center",gap:6,fontFamily:S.sans,fontSize:11,color:"#9ca3af",textDecoration:"none",border:"1px solid #1f2937",padding:"8px 16px" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/></svg>
-                  @davenportwardrobe
-                </a>
-              </div>
-              <button onClick={()=>setPage("home")} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:12,color:"#4b5563",textDecoration:"underline" }}>
-                Back to home
-              </button>
-            </div>
-          ) : (
-            <div style={{ background:"#111",border:"1px solid #1f2937",padding:"44px" }}>
-              <p style={{ fontFamily:S.serif,fontSize:28,fontWeight:600,color:S.cream,marginBottom:6 }}>Save your spot.</p>
-              <p style={{ fontFamily:S.sans,fontSize:13,color:"#4b5563",marginBottom:32,lineHeight:1.6 }}>Drop your info below. We'll be in touch.</p>
-              <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
-                style={{ width:"100%",background:"#0a0a0a",border:"1px solid #1f2937",outline:"none",padding:"14px 18px",fontFamily:S.sans,fontSize:14,color:S.cream,marginBottom:12,boxSizing:"border-box" }}/>
-              <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Your email address" type="email"
-                onKeyDown={e=>e.key==="Enter"&&submit()}
-                style={{ width:"100%",background:"#0a0a0a",border:`1px solid ${error?"#ef4444":"#1f2937"}`,outline:"none",padding:"14px 18px",fontFamily:S.sans,fontSize:14,color:S.cream,marginBottom:12,boxSizing:"border-box" }}/>
-              {error && <p style={{ fontFamily:S.sans,fontSize:11,color:"#ef4444",marginBottom:12 }}>{error}</p>}
-              <button onClick={submit} disabled={loading}
-                style={{ width:"100%",background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"16px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:14,opacity:loading?0.7:1 }}>
-                {loading ? "Joining..." : "Join the Waitlist"}
-              </button>
-              <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151",textAlign:"center",lineHeight:1.6 }}>No spam ever. We'll only reach out when we're live.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── FOOTER ───────────────────────────────────────────────────────────────────
 function Footer({ setPage }) {
   return (
@@ -1654,7 +1532,7 @@ function Footer({ setPage }) {
           </div>
         </div>
         <div style={{ display:"flex",gap:56,flexWrap:"wrap" }}>
-          {[["Shop",[["browse","Shop Pieces"],["wardrobes","Shop Wardrobes"],["quiz","Find My Style"],["community","Community"]]],["Company",[["sustainability","Our Mission"],["waitlist","Join Waitlist"],["signup","Sign Up"]]]].map(([col,links])=>(
+          {[["Shop",[["browse","Shop Pieces"],["wardrobes","Shop Wardrobes"],["quiz","Find My Style"],["community","Community"]]],["Company",[["sustainability","Our Mission"]]]].map(([col,links])=>(
             <div key={col}>
               <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#4b5563",marginBottom:14 }}>{col}</p>
               {links.map(([p,label])=>(
@@ -1678,14 +1556,16 @@ export default function App() {
   const [suitcase,setSuitcase]=useState([]);
   const [styleProfile,setStyleProfile]=useState([]);
   const [isLoggedIn,setIsLoggedIn]=useState(false);
-  const [items,setItems]=useState(STATIC_ITEMS);
+  const [items,setItems]=useState([]);
+  const [loadingItems,setLoadingItems]=useState(true);
   const [buying,setBuying]=useState(null);
 
   useEffect(()=>{
     fetch("/api/inventory")
       .then(r=>r.json())
-      .then(rows=>{ if(Array.isArray(rows)&&rows.length>0) setItems(mergeItems(STATIC_ITEMS,rows)); })
-      .catch(()=>{});
+      .then(rows=>{ setItems(Array.isArray(rows)?rows.map(dbItemToUi):[]); })
+      .catch(()=>{ setItems([]); })
+      .finally(()=>{ setLoadingItems(false); });
   },[]);
 
   async function handleBuy(item) {
@@ -1709,9 +1589,9 @@ export default function App() {
   }
 
   function render(){
-    if(page==="waitlist")      return <WaitlistPage setPage={nav}/>;
+    if(page==="waitlist")      return <HomePage setPage={nav}/>;
     if(page==="home")          return <HomePage setPage={nav}/>;
-    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy}/>;
+    if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy} loading={loadingItems}/>;
     if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
     if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items}/>;
