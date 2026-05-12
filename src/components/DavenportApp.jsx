@@ -339,44 +339,66 @@ function HomePage({ setPage }) {
 
   return (
     <div>
-      {/* Hero — Founder Story */}
-      <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", alignItems:"center", background:S.cream, padding:"80px 40px" }}>
-        <div style={{ maxWidth:760, margin:"0 auto", width:"100%" }}>
-          <p style={{ fontFamily:S.serif, fontSize:"clamp(48px, 7vw, 80px)", fontWeight:700, letterSpacing:"-2px", color:S.ink, lineHeight:1, marginBottom:40 }}>Davenport</p>
-          {/* Author headshot */}
-          <img
-            src="https://i.imgur.com/1y1EZRn.png"
-            alt="Ben Davenport"
-            style={{ width:120, height:120, borderRadius:"50%", objectFit:"cover", objectPosition:"center top", display:"block", marginBottom:28, border:`3px solid ${S.stone}` }}
-          />
-          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:S.tan, marginBottom:16, fontWeight:500 }}>Better clothes. Less effort.</p>
-          <h1 style={{ fontFamily:S.serif, fontSize:"clamp(44px, 6vw, 80px)", fontWeight:600, lineHeight:0.93, letterSpacing:"-2.5px", color:S.ink, marginBottom:36 }}>
-            A smarter way<br/><em style={{ fontStyle:"italic", color:"#6b5e4e" }}>for men</em><br/>to dress.
+      {/* Hero */}
+      <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding:"0 64px 0", position:"relative", overflow:"hidden" }}>
+        {/* Subtle background texture — large faded D */}
+        <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>
+        <div style={{ position:"relative", zIndex:1, maxWidth:1080, margin:"0 auto", width:"100%" }}>
+          {/* Eyebrow */}
+          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom:32, fontWeight:600 }}>Better clothes. Less effort.</p>
+          {/* Headline */}
+          <h1 style={{ fontFamily:S.serif, fontSize:"clamp(56px, 8.5vw, 120px)", fontWeight:600, lineHeight:0.9, letterSpacing:"-3px", color:S.ink, marginBottom:48, maxWidth:800 }}>
+            A smarter way<br/>
+            <em style={{ fontStyle:"italic", color:"#7a6a58" }}>for men</em><br/>
+            to dress.
           </h1>
-          <div style={{ display:"flex", flexDirection:"column", gap:16, marginBottom:12, maxWidth:600 }}>
-            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
-              I'm Ben Davenport, a student at Penn State — and like most guys in college, I spent way too much money on clothes I didn't need, that didn't fit right, and that I had to haul back and forth every semester.
-            </p>
-            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
-              It started in high school when I learned about fast fashion and the damage it does — to the environment, to our wallets, to the way we actually think about style. I kept thinking: there has to be a better way.
-            </p>
-            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
-              When I got to college, I noticed something. Guys actually care about how they look. They want to dress well, show up with confidence, and stay current — but the whole system works against them. Impulse buys. Wrong sizes. Clothes you wear twice. Bags stuffed with stuff you forgot you even owned.
-            </p>
-            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
-              Davenport is my answer to all of it. A curated wardrobe, sent to you, personalized to your style. Wear it as long as you want. If something doesn't fit, send it back. If you love a piece, buy it outright. When you're ready for something new, swap your whole wardrobe with a few clicks.
-            </p>
-            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
-              Going on a trip? We'll build you a wardrobe for it. Starting an internship? We've got you. Just want to look good without thinking about it? That's exactly what this is for.
-            </p>
-            <p style={{ fontFamily:S.sans, fontSize:15, color:S.ink, lineHeight:1.85, fontWeight:500 }}>
-              I built this because I needed it. And I think you do too.
-            </p>
+          {/* Sub-copy */}
+          <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, lineHeight:1.75, maxWidth:440, marginBottom:52 }}>
+            A curated wardrobe subscription for college men. Wear the brands you actually want — pay only for what's in your Suitcase.
+          </p>
+          {/* CTAs */}
+          <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:80 }}>
+            <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"16px 40px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Shop Wardrobes</button>
+            <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"16px 40px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Shop Pieces</button>
           </div>
-          <p style={{ fontFamily:S.serif, fontSize:22, fontWeight:600, color:S.ink, marginBottom:40, fontStyle:"italic" }}>— Ben</p>
-          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
-            <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"14px 32px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>Shop Wardrobes</button>
-            <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #c9bfb0`, cursor:"pointer", padding:"14px 32px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>Shop Pieces</button>
+          {/* Founder credit */}
+          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", objectPosition:"center top", border:`2px solid ${S.stone}`, flexShrink:0 }} />
+            <div>
+              <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, letterSpacing:"0.04em" }}>Ben Davenport</p>
+              <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted }}>Founder · Penn State</p>
+            </div>
+          </div>
+        </div>
+        {/* Scroll cue */}
+        <div style={{ position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+          <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase", color:S.tan }}>Scroll</p>
+          <div style={{ width:1, height:32, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
+        </div>
+      </section>
+
+      {/* Founder Story */}
+      <section style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}` }}>
+        <div style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns:"2fr 3fr" }}>
+          <div style={{ position:"sticky", top:60, height:"calc(100vh - 60px)", overflow:"hidden", background:"#ede8e1", display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", display:"block" }} />
+          </div>
+          <div style={{ padding:"88px 72px" }}>
+            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:14, fontWeight:500 }}>Founder</p>
+            <h2 style={{ fontFamily:S.serif, fontSize:"clamp(32px,4vw,52px)", fontWeight:600, letterSpacing:"-1px", color:S.ink, marginBottom:40, lineHeight:1.05 }}>Why I Built This</h2>
+            <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+              {[
+                "I'm Ben Davenport, a student at Penn State — and like most guys in college, I spent way too much money on clothes I didn't need, that didn't fit right, and that I had to haul back and forth every semester.",
+                "It started in high school when I learned about fast fashion and the damage it does — to the environment, to our wallets, to the way we actually think about style. I kept thinking: there has to be a better way.",
+                "When I got to college, I noticed something. Guys actually care about how they look. They want to dress well, show up with confidence, and stay current — but the whole system works against them. Impulse buys. Wrong sizes. Clothes you wear twice. Bags stuffed with stuff you forgot you even owned.",
+                "Davenport is my answer to all of it. A curated wardrobe, sent to you, personalized to your style. Wear it as long as you want. If something doesn't fit, send it back. If you love a piece, buy it outright. When you're ready for something new, swap your whole wardrobe with a few clicks.",
+                "Going on a trip? We'll build you a wardrobe for it. Starting an internship? We've got you. Just want to look good without thinking about it? That's exactly what this is for.",
+              ].map((text, i) => (
+                <p key={i} style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.9 }}>{text}</p>
+              ))}
+              <p style={{ fontFamily:S.sans, fontSize:15, color:S.ink, lineHeight:1.9, fontWeight:500 }}>I built this because I needed it. And I think you do too.</p>
+            </div>
+            <p style={{ fontFamily:S.serif, fontSize:24, fontWeight:600, color:S.ink, marginTop:40, fontStyle:"italic" }}>— Ben</p>
           </div>
         </div>
       </section>
