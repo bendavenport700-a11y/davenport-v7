@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { SignInButton, useUser } from "@clerk/nextjs";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');`;
 
@@ -203,6 +203,7 @@ const OUTFITS = [
 function Nav({ page, setPage, suitcase }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { isSignedIn } = useUser();
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 900);
@@ -240,11 +241,15 @@ function Nav({ page, setPage, suitcase }) {
                 {label}
               </button>
             ))}
-            <SignInButton mode="modal">
-              <button style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"9px 18px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase" }}>
-                Sign In
-              </button>
-            </SignInButton>
+            {isSignedIn ? (
+              <UserButton afterSignOutUrl="/" />
+            ) : (
+              <SignInButton mode="modal">
+                <button style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"9px 18px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase" }}>
+                  Sign In
+                </button>
+              </SignInButton>
+            )}
             <button onClick={()=>go("suitcase")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"9px 20px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,transition:"background 0.2s" }}
               onMouseEnter={e=>e.currentTarget.style.background="#d4b896"}
               onMouseLeave={e=>e.currentTarget.style.background=S.gold}>
@@ -285,11 +290,18 @@ function Nav({ page, setPage, suitcase }) {
                 {label}
               </button>
             ))}
-            <SignInButton mode="modal">
-              <button style={{ marginTop:16,background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",width:"100%" }}>
-                Sign In
-              </button>
-            </SignInButton>
+            {isSignedIn ? (
+              <div style={{ marginTop:16,display:"flex",alignItems:"center",gap:12,padding:"8px 0" }}>
+                <UserButton afterSignOutUrl="/" />
+                <span style={{ fontFamily:S.sans,fontSize:12,color:S.muted }}>Account</span>
+              </div>
+            ) : (
+              <SignInButton mode="modal">
+                <button style={{ marginTop:16,background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",width:"100%" }}>
+                  Sign In
+                </button>
+              </SignInButton>
+            )}
           </div>
         </div>
       )}
