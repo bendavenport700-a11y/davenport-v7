@@ -20,6 +20,7 @@ const S = {
 
 const EMPTY_ITEM     = { name: "", brand: "", category: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 const EMPTY_WARDROBE = { name: "", description: "", image_url: "" };
+const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 
 function Label({ children }) {
   return (
@@ -55,6 +56,12 @@ export default function AdminPage() {
   const [itemSaving, setItemSaving] = useState(false);
   const [itemDeleting, setItemDeleting] = useState(null);
   const [itemError, setItemError] = useState("");
+
+  // Inline edit state
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   // Wardrobes tab state
   const [wForm, setWForm] = useState(EMPTY_WARDROBE);
@@ -124,6 +131,59 @@ export default function AdminPage() {
       await fetch("/api/inventory", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: itemId, wardrobe_id: null }) });
       await loadAll();
     } finally { setRemovingItem(null); }
+  }
+
+  function startEdit(item) {
+    setEditingId(item.id);
+    setEditError("");
+    setEditForm({
+      name:        item.name || "",
+      brand:       item.brand || "",
+      category:    item.category || "",
+      size:        item.size || "",
+      price:       item.price ? (item.price / 100).toString() : "",
+      condition:   item.condition || "",
+      description: item.description || "",
+      image_url:   item.image_url || "",
+      stock:       item.stock != null ? item.stock.toString() : "1",
+      wardrobe_id: item.wardrobe_id != null ? item.wardrobe_id.toString() : "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm(EMPTY_EDIT);
+    setEditError("");
+  }
+
+  async function handleSaveEdit(e) {
+    e.preventDefault();
+    if (!editForm.name || !editForm.price) { setEditError("Name and price are required."); return; }
+    setEditSaving(true);
+    setEditError("");
+    try {
+      const res = await fetch("/api/inventory", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id:          editingId,
+          name:        editForm.name,
+          brand:       editForm.brand || null,
+          category:    editForm.category || null,
+          size:        editForm.size || null,
+          price:       Math.round(parseFloat(editForm.price) * 100),
+          condition:   editForm.condition || null,
+          description: editForm.description || null,
+          image_url:   editForm.image_url || null,
+          stock:       parseInt(editForm.stock) || 1,
+          wardrobe_id: editForm.wardrobe_id ? parseInt(editForm.wardrobe_id) : null,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); setEditError(d.error ?? "Failed to save."); return; }
+      setEditingId(null);
+      await loadAll();
+    } catch { setEditError("Something went wrong."); }
+    finally { setEditSaving(false); }
   }
 
   // ── Wardrobe actions ────────────────────────────────────────────────────────
@@ -318,27 +378,97 @@ export default function AdminPage() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {items.map(item => (
-                    <div key={item.id} style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 10, padding: "14px 20px", display: "flex", alignItems: "center", gap: 16 }}>
-                      {item.image_url ? (
-                        <img src={item.image_url} alt={item.name} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}/>
+                    <div key={item.id} style={{ background: "#fff", border: `1px solid ${editingId === item.id ? S.tan : S.stone}`, borderRadius: 10, overflow: "hidden" }}>
+                      {editingId === item.id ? (
+                        <form onSubmit={handleSaveEdit} style={{ padding: "20px 24px" }}>
+                          <p style={{ fontFamily: S.serif, fontSize: 18, color: S.ink, marginBottom: 18 }}>Editing: {item.name}</p>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                            <div style={{ gridColumn: "1 / -1" }}>
+                              <Label>Name *</Label>
+                              <Input autoFocus value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Item name"/>
+                            </div>
+                            <div>
+                              <Label>Brand</Label>
+                              <Input value={editForm.brand} onChange={e => setEditForm(f => ({ ...f, brand: e.target.value }))} placeholder="J.Crew"/>
+                            </div>
+                            <div>
+                              <Label>Category</Label>
+                              <Input value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} placeholder="Oxford Shirt"/>
+                            </div>
+                            <div>
+                              <Label>Size</Label>
+                              <Input value={editForm.size} onChange={e => setEditForm(f => ({ ...f, size: e.target.value }))} placeholder="M"/>
+                            </div>
+                            <div>
+                              <Label>Condition</Label>
+                              <Input value={editForm.condition} onChange={e => setEditForm(f => ({ ...f, condition: e.target.value }))} placeholder="Like New"/>
+                            </div>
+                            <div>
+                              <Label>Buy Price (USD) *</Label>
+                              <Input type="number" value={editForm.price} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))} placeholder="85"/>
+                            </div>
+                            <div>
+                              <Label>Stock</Label>
+                              <Input type="number" value={editForm.stock} onChange={e => setEditForm(f => ({ ...f, stock: e.target.value }))} placeholder="1"/>
+                            </div>
+                            <div style={{ gridColumn: "1 / -1" }}>
+                              <Label>Wardrobe</Label>
+                              <select value={editForm.wardrobe_id} onChange={e => setEditForm(f => ({ ...f, wardrobe_id: e.target.value }))}
+                                style={{ fontFamily: S.sans, fontSize: 14, color: editForm.wardrobe_id ? S.ink : S.muted, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", cursor: "pointer" }}>
+                                <option value="">No wardrobe</option>
+                                {wardrobes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                              </select>
+                            </div>
+                            <div style={{ gridColumn: "1 / -1" }}>
+                              <Label>Image URL</Label>
+                              <Input value={editForm.image_url} onChange={e => setEditForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..."/>
+                            </div>
+                            <div style={{ gridColumn: "1 / -1" }}>
+                              <Label>Description</Label>
+                              <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} rows={2}
+                                style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", resize: "vertical" }}/>
+                            </div>
+                          </div>
+                          {editError && <p style={{ fontFamily: S.sans, fontSize: 13, color: "#dc2626", marginTop: 12 }}>{editError}</p>}
+                          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+                            <button type="submit" disabled={editSaving}
+                              style={{ fontFamily: S.sans, fontSize: 13, fontWeight: 600, background: S.ink, color: S.cream, border: "none", borderRadius: 6, padding: "10px 22px", cursor: editSaving ? "not-allowed" : "pointer", opacity: editSaving ? 0.7 : 1 }}>
+                              {editSaving ? "Saving..." : "Save Changes"}
+                            </button>
+                            <button type="button" onClick={cancelEdit}
+                              style={{ fontFamily: S.sans, fontSize: 13, background: "transparent", color: S.muted, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 20px", cursor: "pointer" }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
                       ) : (
-                        <div style={{ width: 52, height: 52, background: S.stone, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>👕</div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontFamily: S.serif, fontSize: 17, color: S.ink, marginBottom: 2 }}>{item.name}</p>
-                        <p style={{ fontFamily: S.sans, fontSize: 12, color: S.muted }}>
-                          {[item.brand, item.category].filter(Boolean).join(" · ")} · ${(item.price / 100).toFixed(0)} · {item.stock} in stock
-                          {item.wardrobe_id && wardrobeMap[item.wardrobe_id] && (
-                            <span style={{ marginLeft: 8, background: "#f0ebe3", border: "1px solid #ddd5c8", borderRadius: 10, padding: "1px 8px", fontSize: 11, color: S.tan }}>
-                              {wardrobeMap[item.wardrobe_id]}
-                            </span>
+                        <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}/>
+                          ) : (
+                            <div style={{ width: 52, height: 52, background: S.stone, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>👕</div>
                           )}
-                        </p>
-                      </div>
-                      <button onClick={() => handleDeleteItem(item.id)} disabled={itemDeleting === item.id}
-                        style={{ fontFamily: S.sans, fontSize: 12, background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "7px 14px", cursor: "pointer", flexShrink: 0, opacity: itemDeleting === item.id ? 0.5 : 1 }}>
-                        {itemDeleting === item.id ? "Deleting..." : "Delete"}
-                      </button>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontFamily: S.serif, fontSize: 17, color: S.ink, marginBottom: 2 }}>{item.name}</p>
+                            <p style={{ fontFamily: S.sans, fontSize: 12, color: S.muted }}>
+                              {[item.brand, item.category, item.size, item.condition].filter(Boolean).join(" · ")} · ${(item.price / 100).toFixed(0)} · {item.stock} in stock
+                              {item.wardrobe_id && wardrobeMap[item.wardrobe_id] && (
+                                <span style={{ marginLeft: 8, background: "#f0ebe3", border: "1px solid #ddd5c8", borderRadius: 10, padding: "1px 8px", fontSize: 11, color: S.tan }}>
+                                  {wardrobeMap[item.wardrobe_id]}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <button onClick={() => startEdit(item)}
+                            style={{ fontFamily: S.sans, fontSize: 12, background: "transparent", color: S.ink, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "7px 14px", cursor: "pointer", flexShrink: 0 }}>
+                            Edit
+                          </button>
+                          <button onClick={() => handleDeleteItem(item.id)} disabled={itemDeleting === item.id}
+                            style={{ fontFamily: S.sans, fontSize: 12, background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "7px 14px", cursor: "pointer", flexShrink: 0, opacity: itemDeleting === item.id ? 0.5 : 1 }}>
+                            {itemDeleting === item.id ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

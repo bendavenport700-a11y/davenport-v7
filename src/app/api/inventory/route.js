@@ -38,8 +38,31 @@ export async function PATCH(req) {
 
   const sql = getDb();
   try {
-    const { id, wardrobe_id } = await req.json();
-    await sql`UPDATE inventory SET wardrobe_id = ${wardrobe_id ?? null} WHERE id = ${id}`;
+    const body = await req.json();
+    const { id } = body;
+
+    if ("name" in body) {
+      const { name, brand, category, size, price, condition, description, image_url, stock, wardrobe_id } = body;
+      const rent_price = Math.round(price * 0.0834);
+      await sql`
+        UPDATE inventory SET
+          name        = ${name},
+          brand       = ${brand ?? null},
+          category    = ${category ?? null},
+          size        = ${size ?? null},
+          price       = ${price},
+          rent_price  = ${rent_price},
+          condition   = ${condition ?? null},
+          description = ${description ?? null},
+          image_url   = ${image_url ?? null},
+          stock       = ${stock ?? 1},
+          wardrobe_id = ${wardrobe_id ?? null}
+        WHERE id = ${id}
+      `;
+    } else {
+      await sql`UPDATE inventory SET wardrobe_id = ${body.wardrobe_id ?? null} WHERE id = ${id}`;
+    }
+
     return Response.json({ ok: true });
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });
