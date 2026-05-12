@@ -18,7 +18,7 @@ const S = {
   muted: "#6b7280",
 };
 
-const EMPTY_ITEM     = { name: "", brand: "", category: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
+const EMPTY_ITEM     = { name: "", brand: "", category: "", size: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 const EMPTY_WARDROBE = { name: "", description: "", image_url: "" };
 const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 
@@ -301,6 +301,11 @@ export default function AdminPage() {
                 </div>
 
                 <div>
+                  <Label>Size</Label>
+                  <Input value={itemForm.size} onChange={e => setItemForm(f => ({ ...f, size: e.target.value }))} placeholder="M"/>
+                </div>
+
+                <div>
                   <Label>Buy Price (USD) *</Label>
                   <Input type="number" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} placeholder="85"/>
                 </div>
@@ -444,7 +449,13 @@ export default function AdminPage() {
                       ) : (
                         <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", gap: 16 }}>
                           {item.image_url ? (
-                            <img src={item.image_url} alt={item.name} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}/>
+                            <>
+                              <img src={item.image_url} alt={item.name}
+                                style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}
+                                onError={e => { e.currentTarget.style.display = "none"; e.currentTarget.nextElementSibling.style.display = "flex"; }}
+                              />
+                              <div style={{ width: 52, height: 52, background: S.stone, borderRadius: 6, display: "none", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>👕</div>
+                            </>
                           ) : (
                             <div style={{ width: 52, height: 52, background: S.stone, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>👕</div>
                           )}

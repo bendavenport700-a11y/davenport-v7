@@ -86,6 +86,7 @@ function dbItemToUi(row) {
     style: null,
     season: null,
     stock: row.stock || 1,
+    image_url: row.image_url || null,
     wardrobe_id: row.wardrobe_id ?? null,
   };
 }
@@ -1206,13 +1207,22 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading, i
 
 function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy, isMobile=false }) {
   const [hov,setHov]=useState(false);
+  const [imgErr,setImgErr]=useState(false);
+  const showImg = item.image_url && !imgErr;
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{ background:"#fff",border:`1px solid ${S.stone}`,transition:"transform 0.2s,box-shadow 0.2s",transform:hov&&!isMobile?"translateY(-4px)":"none",boxShadow:hov&&!isMobile?"0 16px 40px rgba(0,0,0,0.09)":"none" }}>
       <div onClick={()=>setPage(`item-${item.id}`)} style={{ cursor:"pointer" }}>
-        <div style={{ aspectRatio: isMobile ? "1" : "auto", height: isMobile ? "auto" : 150,background:item.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize: isMobile ? 44 : 40 }}>
-          {item.emoji}
-        </div>
+        {showImg ? (
+          <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)}
+            style={{ width:"100%", height: isMobile ? "auto" : 150, aspectRatio: isMobile ? "1" : "auto", objectFit:"cover", display:"block" }}/>
+        ) : item._dbId != null ? (
+          <div style={{ aspectRatio: isMobile ? "1" : "auto", height: isMobile ? "auto" : 150, background:"#e8e3dc" }}/>
+        ) : (
+          <div style={{ aspectRatio: isMobile ? "1" : "auto", height: isMobile ? "auto" : 150, background:item.color, display:"flex", alignItems:"center", justifyContent:"center", fontSize: isMobile ? 44 : 40 }}>
+            {item.emoji}
+          </div>
+        )}
         <div style={{ padding: isMobile ? "10px 10px 8px" : "15px 16px 10px" }}>
           <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:2 }}>{item.brand}</p>
           <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 13 : 16,fontWeight:600,color:S.ink,marginBottom: isMobile ? 4 : 6,lineHeight:1.2 }}>{item.name}</h3>
@@ -1240,6 +1250,7 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy, isMobile=fa
 function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy }) {
   const item=items.find(i=>i.id===itemId);
   const [inSuitcase,setInSuitcase]=useState(suitcase.some(s=>s.id===itemId));
+  const [imgErr,setImgErr]=useState(false);
   if(!item) return <div style={{ padding:"120px 40px" }}><h2>Item not found</h2></div>;
 
   const monthlyPrice=getMonthlyPrice(item);
@@ -1251,7 +1262,13 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
       <div style={{ maxWidth:1020,margin:"0 auto",padding:"52px 40px" }}>
         <button onClick={()=>setPage("browse")} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:S.tan,marginBottom:36 }}>← Back to Catalog</button>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:60 }}>
-          <div style={{ background:item.color,height:420,display:"flex",alignItems:"center",justifyContent:"center",fontSize:110 }}>{item.emoji}</div>
+          {item.image_url && !imgErr ? (
+            <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)} style={{ width:"100%", height:420, objectFit:"cover", display:"block" }}/>
+          ) : item._dbId != null ? (
+            <div style={{ height:420, background:"#e8e3dc" }}/>
+          ) : (
+            <div style={{ background:item.color, height:420, display:"flex", alignItems:"center", justifyContent:"center", fontSize:110 }}>{item.emoji}</div>
+          )}
           <div>
             <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>{item.brand} · {item.category} · {item.occasion}</p>
             <h1 style={{ fontFamily:S.serif,fontSize:42,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>{item.name}</h1>
