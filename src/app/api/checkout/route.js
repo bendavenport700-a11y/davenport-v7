@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import Stripe from "stripe";
 import { getDb } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
