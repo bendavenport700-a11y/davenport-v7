@@ -68,6 +68,27 @@ export async function GET() {
       )
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS wardrobes (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        description TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
+    await sql`
+      INSERT INTO wardrobes (name, description) VALUES
+        ('Campus Casual',   'Everyday college fits for class, the dining hall, and everywhere in between.'),
+        ('Business Casual', 'Sharp enough for the office, comfortable enough for a long day.'),
+        ('Going Out',       'Dark tones, clean fits, and pieces that get noticed.'),
+        ('Weekend',         'Relaxed fits that still look intentional.'),
+        ('Internship',      'Everything you need to show up and stand out on day one.')
+      ON CONFLICT (name) DO NOTHING
+    `;
+
+    await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS wardrobe_id INTEGER REFERENCES wardrobes(id)`;
+
     return Response.json({ ok: true, message: "Tables created." });
   } catch (err) {
     return Response.json({ ok: false, error: err.message }, { status: 500 });

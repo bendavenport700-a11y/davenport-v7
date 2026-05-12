@@ -86,6 +86,7 @@ function dbItemToUi(row) {
     style: null,
     season: null,
     stock: row.stock || 1,
+    wardrobe_id: row.wardrobe_id ?? null,
   };
 }
 
@@ -703,6 +704,88 @@ function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, onCardClick, d
   );
 }
 
+// ─── DB WARDROBE CARD ─────────────────────────────────────────────────────────
+function DbWardrobeCard({ wardrobe, itemCount, isMobile, onClick }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{ cursor:"pointer", background:"#fff", border:`1px solid ${hov ? S.tan : S.stone}`, padding: isMobile ? "20px 20px" : "28px 28px", transition:"border-color 0.2s, transform 0.2s, box-shadow 0.2s", transform: hov ? "translateY(-3px)" : "none", boxShadow: hov ? "0 12px 32px rgba(0,0,0,0.07)" : "none" }}
+    >
+      <p style={{ fontFamily:S.sans, fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, marginBottom:8 }}>
+        {itemCount} piece{itemCount !== 1 ? "s" : ""}
+      </p>
+      <h3 style={{ fontFamily:S.serif, fontSize: isMobile ? 22 : 26, fontWeight:600, color:S.ink, marginBottom:8 }}>{wardrobe.name}</h3>
+      {wardrobe.description && (
+        <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, lineHeight:1.65, marginBottom:14 }}>{wardrobe.description}</p>
+      )}
+      <p style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, color:S.tan, letterSpacing:"0.08em", textTransform:"uppercase" }}>
+        Shop {wardrobe.name} →
+      </p>
+    </div>
+  );
+}
+
+// ─── DB WARDROBE DETAIL PAGE ──────────────────────────────────────────────────
+function DbWardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase, items }) {
+  const isMobile = useMobile();
+  const [wardrobe, setWardrobe] = useState(null);
+
+  useEffect(() => {
+    fetch("/api/wardrobes")
+      .then(r => r.json())
+      .then(d => {
+        const found = (Array.isArray(d) ? d : []).find(w => w.id === wardrobeId);
+        setWardrobe(found ?? null);
+      })
+      .catch(() => {});
+  }, [wardrobeId]);
+
+  const pieces = items.filter(i => i.wardrobe_id === wardrobeId);
+
+  if (!wardrobe) {
+    return (
+      <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream, display:"flex", alignItems:"center", justifyContent:"center" }}>
+        <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted }}>Loading…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
+      <div style={{ background:"#fff", borderBottom:`1px solid ${S.stone}`, padding: isMobile ? "28px 20px 24px" : "52px 40px 36px" }}>
+        <div style={{ maxWidth:1080, margin:"0 auto" }}>
+          <button onClick={()=>setPage("wardrobes")} style={{ fontFamily:S.sans, fontSize:12, color:S.muted, background:"none", border:"none", cursor:"pointer", marginBottom:16, padding:0, letterSpacing:"0.04em" }}>
+            ← All Wardrobes
+          </button>
+          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 36 : 52, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:10 }}>{wardrobe.name}</h1>
+          {wardrobe.description && (
+            <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 16, color:S.muted, maxWidth:520 }}>{wardrobe.description}</p>
+          )}
+          <p style={{ fontFamily:S.sans, fontSize:12, color:S.tan, marginTop:12 }}>{pieces.length} piece{pieces.length !== 1 ? "s" : ""}</p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth:1080, margin:"0 auto", padding: isMobile ? "20px 12px 60px" : "36px 40px 80px" }}>
+        {pieces.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"80px 0" }}>
+            <p style={{ fontFamily:S.serif, fontSize:32, fontWeight:300, color:S.tan, fontStyle:"italic", marginBottom:12 }}>No pieces yet.</p>
+            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted }}>Items added to this wardrobe in admin will appear here.</p>
+          </div>
+        ) : (
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(auto-fill,minmax(228px,1fr))", gap: isMobile ? 10 : 22 }}>
+            {pieces.map(item => (
+              <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} isMobile={isMobile}/>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── WARDROBES PAGE ───────────────────────────────────────────────────────────
 function InlineStyleQuiz({ onComplete }) {
   const [index, setIndex] = useState(0);
@@ -749,17 +832,28 @@ function InlineStyleQuiz({ onComplete }) {
   );
 }
 
-function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
+function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
   const isMobile = useMobile();
   const [seasonFilter, setSeasonFilter] = useState("All");
   const [quizDone, setQuizDone] = useState(false);
+  const [dbWardrobes, setDbWardrobes] = useState([]);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
+
+  useEffect(()=>{
+    fetch("/api/wardrobes").then(r=>r.json()).then(d=>setDbWardrobes(Array.isArray(d)?d:[])).catch(()=>{});
+  },[]);
+
   const seasons = ["All","Fall/Winter","Spring/Summer"];
   const filtered = seasonFilter==="All" ? WARDROBES : WARDROBES.filter(w=>w.season===seasonFilter);
 
   function handleCardClick(wardrobeId) {
     if (isSignedIn) setPage(`wardrobe-${wardrobeId}`);
+    else openSignIn();
+  }
+
+  function handleDbWardrobeClick(wardrobeId) {
+    if (isSignedIn) setPage(`wardrobe-db-${wardrobeId}`);
     else openSignIn();
   }
 
@@ -784,6 +878,7 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
       </div>
 
       <div style={{ maxWidth:1080, margin:"0 auto", padding: isMobile ? "20px 16px 40px" : "40px 40px 80px" }}>
+        {/* Static curated wardrobes */}
         <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: isMobile ? 16 : 28 }}>
           {filtered.map(w=>{
             const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
@@ -791,6 +886,22 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
             return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={handleCardClick}/>;
           })}
         </div>
+
+        {/* DB wardrobes — real inventory collections */}
+        {dbWardrobes.length > 0 && (
+          <div style={{ marginTop: isMobile ? 32 : 48 }}>
+            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Shop by Collection</p>
+            <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 36, fontWeight:600, letterSpacing:"-0.5px", color:S.ink, marginBottom: isMobile ? 16 : 28 }}>Real inventory, curated wardrobes.</h2>
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: isMobile ? 12 : 20 }}>
+              {dbWardrobes.map(w => {
+                const count = items.filter(i => i.wardrobe_id === w.id).length;
+                return (
+                  <DbWardrobeCard key={w.id} wardrobe={w} itemCount={count} isMobile={isMobile} onClick={()=>handleDbWardrobeClick(w.id)}/>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {!quizDone ? (
@@ -980,12 +1091,18 @@ function AuthGate() {
   );
 }
 
-function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading, initialWardrobe=null }) {
   const isMobile = useMobile();
   const { isSignedIn, isLoaded } = useUser();
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
   const [sort,setSort]=useState("price-asc");
+  const [wardrobeFilter,setWardrobeFilter]=useState(initialWardrobe);
+  const [dbWardrobes,setDbWardrobes]=useState([]);
+
+  useEffect(()=>{
+    fetch("/api/wardrobes").then(r=>r.json()).then(d=>setDbWardrobes(Array.isArray(d)?d:[])).catch(()=>{});
+  },[]);
 
   if (!isLoaded) return null;
   if (!isSignedIn) return <AuthGate />;
@@ -997,6 +1114,7 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading })
   const categories = ["All",...new Set(items.map(i=>i.category).filter(Boolean))];
 
   const filtered = items
+    .filter(i=>wardrobeFilter===null||i.wardrobe_id===wardrobeFilter)
     .filter(i=>!newOnly||i.condition==="Like New")
     .filter(i=>filters.occasion==="All"||!i.occasion||i.occasion===filters.occasion)
     .filter(i=>filters.style==="All"||!i.style||i.style===filters.style)
@@ -1014,7 +1132,18 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading })
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
       <div style={{ padding: isMobile ? "28px 16px 20px" : "52px 40px 36px",background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
         <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:8 }}>The Catalog</p>
-        <h1 style={{ fontFamily:S.serif,fontSize: isMobile ? 32 : 48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom: isMobile ? 20 : 32 }}>Every piece. Your price.</h1>
+        <h1 style={{ fontFamily:S.serif,fontSize: isMobile ? 32 : 48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom: isMobile ? 16 : 24 }}>Every piece. Your price.</h1>
+
+        {/* Wardrobe filter */}
+        {dbWardrobes.length > 0 && (
+          <div style={{ marginBottom: isMobile ? 14 : 20 }}>
+            {!isMobile && <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:8 }}>Wardrobe</p>}
+            <div style={{ display:"flex",gap:6,overflowX:"auto",flexWrap: isMobile ? "nowrap" : "wrap",paddingBottom: isMobile ? 4 : 0 }}>
+              {pill("All Wardrobes", wardrobeFilter===null, ()=>setWardrobeFilter(null))}
+              {dbWardrobes.map(w=>pill(w.name, wardrobeFilter===w.id, ()=>setWardrobeFilter(w.id)))}
+            </div>
+          </div>
+        )}
 
         <div style={{ marginBottom:16,display:"flex",alignItems:"center",gap:10 }}>
           <button onClick={()=>setNewOnly(n=>!n)} style={{ background:newOnly?S.ink:"#fff",color:newOnly?S.cream:S.ink,border:`1px solid ${newOnly?S.ink:S.stone}`,padding:"8px 16px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,minHeight:40 }}>
@@ -1941,7 +2070,7 @@ export default function App() {
     if(page==="waitlist")      return <HomePage setPage={nav}/>;
     if(page==="home")          return <HomePage setPage={nav}/>;
     if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy} loading={loadingItems}/>;
-    if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
+    if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items}/>;
     if(page==="community")     return <CommunityPage setPage={nav}/>;
     if(page==="sustainability") return <SustainabilityPage/>;
@@ -1949,6 +2078,7 @@ export default function App() {
     if(page==="auth-login")    return <AuthPage mode="login"  setIsLoggedIn={setIsLoggedIn} setPage={setPage}/>;
     if(page==="auth-gate")     return <AuthGatePage setPage={setPage}/>;
     if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy}/>;
+    if(page.startsWith("wardrobe-db-")) return <DbWardrobeDetailPage wardrobeId={parseInt(page.replace("wardrobe-db-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items}/>;
     if(page.startsWith("wardrobe-")) return <WardrobeDetailPage wardrobeId={page.replace("wardrobe-","")} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
     return <HomePage setPage={nav}/>;
   }
