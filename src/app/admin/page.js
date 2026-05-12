@@ -18,6 +18,9 @@ const S = {
   muted: "#6b7280",
 };
 
+const CATEGORIES = ["T-Shirt","Oxford Shirt","Henley","Crewneck","Hoodie","Quarter-Zip","Fleece","Jacket","Blazer","Chinos","Denim","Trousers","Shorts","Joggers","Sweater","Polo","Cardigan","Outerwear","Accessories"];
+const SIZES      = ["XS","S","M","L","XL","XXL","28","29","30","31","32","33","34","36","38","28x30","30x30","30x32","32x30","32x32","32x34","34x30","34x32","34x34"];
+
 const EMPTY_ITEM     = { name: "", brand: "", category: "", size: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 const EMPTY_WARDROBE = { name: "", description: "", image_url: "" };
 const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
@@ -40,6 +43,19 @@ function Input({ value, onChange, type = "text", placeholder = "", autoFocus = f
       autoFocus={autoFocus}
       style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%" }}
     />
+  );
+}
+
+function Select({ value, onChange, options, placeholder = "Select…" }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      style={{ fontFamily: S.sans, fontSize: 14, color: value ? S.ink : S.muted, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", cursor: "pointer" }}
+    >
+      <option value="">{placeholder}</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
   );
 }
 
@@ -297,12 +313,12 @@ export default function AdminPage() {
 
                 <div>
                   <Label>Category</Label>
-                  <Input value={itemForm.category} onChange={e => setItemForm(f => ({ ...f, category: e.target.value }))} placeholder="Oxford Shirt"/>
+                  <Select value={itemForm.category} onChange={e => setItemForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} placeholder="Select category…"/>
                 </div>
 
                 <div>
                   <Label>Size</Label>
-                  <Input value={itemForm.size} onChange={e => setItemForm(f => ({ ...f, size: e.target.value }))} placeholder="M"/>
+                  <Select value={itemForm.size} onChange={e => setItemForm(f => ({ ...f, size: e.target.value }))} options={SIZES} placeholder="Select size…"/>
                 </div>
 
                 <div>
@@ -398,11 +414,11 @@ export default function AdminPage() {
                             </div>
                             <div>
                               <Label>Category</Label>
-                              <Input value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} placeholder="Oxford Shirt"/>
+                              <Select value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))} options={CATEGORIES} placeholder="Select category…"/>
                             </div>
                             <div>
                               <Label>Size</Label>
-                              <Input value={editForm.size} onChange={e => setEditForm(f => ({ ...f, size: e.target.value }))} placeholder="M"/>
+                              <Select value={editForm.size} onChange={e => setEditForm(f => ({ ...f, size: e.target.value }))} options={SIZES} placeholder="Select size…"/>
                             </div>
                             <div>
                               <Label>Condition</Label>

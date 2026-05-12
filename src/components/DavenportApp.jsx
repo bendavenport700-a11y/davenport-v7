@@ -104,6 +104,8 @@ function mergeItems(staticItems, dbRows) {
   return result;
 }
 
+const CATEGORIES = ["T-Shirt","Oxford Shirt","Henley","Crewneck","Hoodie","Quarter-Zip","Fleece","Jacket","Blazer","Chinos","Denim","Trousers","Shorts","Joggers","Sweater","Polo","Cardigan","Outerwear","Accessories"];
+
 // ─── WARDROBES ────────────────────────────────────────────────────────────────
 // Each wardrobe is a Davenport-curated seasonal collection.
 const WARDROBES = [
@@ -845,6 +847,7 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
   const [quizDone, setQuizDone] = useState(false);
   const [dbWardrobes, setDbWardrobes] = useState([]);
   const [loadingWardrobes, setLoadingWardrobes] = useState(true);
+  const [catFilter, setCatFilter] = useState(null);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -871,7 +874,15 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Curated by Davenport</p>
           <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 36 : 48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:14 }}>Wardrobes.</h1>
-          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520 }}>Each wardrobe is a full collection built around a vibe. Browse the pieces and pick what you want.</p>}
+          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520, marginBottom:24 }}>Each wardrobe is a full collection built around a vibe. Browse the pieces and pick what you want.</p>}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop: isMobile ? 16 : 0 }}>
+            {[null, ...CATEGORIES].map(c=>(
+              <button key={c??"all"} onClick={()=>setCatFilter(catFilter===c?null:c)}
+                style={{ background:catFilter===c?S.ink:"#fff", color:catFilter===c?S.cream:S.muted, border:`1px solid ${catFilter===c?S.ink:S.stone}`, padding: isMobile?"8px 12px":"6px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", minHeight:36 }}>
+                {c??"All"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -883,7 +894,8 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
         ) : (
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: isMobile ? 16 : 28 }}>
             {dbWardrobes.map(w => {
-              const count = items.filter(i => i.wardrobe_id === w.id).length;
+              const count = items.filter(i => i.wardrobe_id === w.id && (!catFilter || i.category === catFilter)).length;
+              if (catFilter && count === 0) return null;
               return (
                 <DbWardrobeCard key={w.id} wardrobe={w} itemCount={count} isMobile={isMobile} onClick={()=>handleDbWardrobeClick(w.id)}/>
               );
