@@ -228,8 +228,9 @@ function Nav({ page, setPage, suitcase }) {
     <>
       <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px 0 32px",height:60 }}>
         {/* Wordmark */}
-        <button onClick={()=>go("home")} style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,letterSpacing:"-0.3px",background:"none",border:"none",cursor:"pointer",color:S.ink }}>
+        <button onClick={()=>go("home")} style={{ fontFamily:S.serif,fontSize:26,fontWeight:700,letterSpacing:"-0.5px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
           Davenport
+          <span style={{ fontFamily:S.sans,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,background:"#f0ebe3",border:`1px solid #ddd5c8`,borderRadius:20,padding:"3px 8px",lineHeight:1 }}>Beta</span>
         </button>
 
         {/* Desktop links */}
@@ -341,7 +342,7 @@ function HomePage({ setPage }) {
       {/* Hero — Founder Story */}
       <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", alignItems:"center", background:S.cream, padding:"80px 40px" }}>
         <div style={{ maxWidth:760, margin:"0 auto", width:"100%" }}>
-          <p style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, letterSpacing:"0.01em", color:S.ink, marginBottom:48 }}>Davenport</p>
+          <p style={{ fontFamily:S.serif, fontSize:"clamp(48px, 7vw, 80px)", fontWeight:700, letterSpacing:"-2px", color:S.ink, lineHeight:1, marginBottom:40 }}>Davenport</p>
           {/* Author headshot */}
           <img
             src="https://i.imgur.com/1y1EZRn.png"
