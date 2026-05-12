@@ -91,6 +91,7 @@ export async function GET() {
     await sql`ALTER TABLE wardrobes ADD COLUMN IF NOT EXISTS image_url TEXT`;
     await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS size TEXT`;
     await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS condition TEXT`;
+    await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS wears TEXT`;
 
     return Response.json({ ok: true, message: "Tables created." });
   } catch (err) {

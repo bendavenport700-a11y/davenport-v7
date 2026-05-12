@@ -20,10 +20,11 @@ const S = {
 
 const CATEGORIES = ["T-Shirt","Oxford Shirt","Henley","Crewneck","Hoodie","Quarter-Zip","Fleece","Jacket","Blazer","Chinos","Denim","Trousers","Shorts","Joggers","Sweater","Polo","Cardigan","Outerwear","Accessories"];
 const SIZES      = ["XS","S","M","L","XL","XXL","28","29","30","31","32","33","34","36","38","28x30","30x30","30x32","32x30","32x32","32x34","34x30","34x32","34x34"];
+const WEARS      = ["0-10 wears", "10-20 wears", "20-30 wears"];
 
-const EMPTY_ITEM     = { name: "", brand: "", category: "", size: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
+const EMPTY_ITEM     = { name: "", brand: "", category: "", size: "", wears: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 const EMPTY_WARDROBE = { name: "", description: "", image_url: "" };
-const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
+const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", wears: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 
 function Label({ children }) {
   return (
@@ -123,7 +124,7 @@ export default function AdminPage() {
       const res = await fetch("/api/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...itemForm, price: Math.round(parseFloat(itemForm.price) * 100), stock: parseInt(itemForm.stock) || 1, wardrobe_id: parseInt(itemForm.wardrobe_id) }),
+        body: JSON.stringify({ ...itemForm, price: Math.round(parseFloat(itemForm.price) * 100), stock: parseInt(itemForm.stock) || 1, wardrobe_id: parseInt(itemForm.wardrobe_id), wears: itemForm.wears || null }),
       });
       if (!res.ok) { const d = await res.json(); setItemError(d.error ?? "Failed to add item."); return; }
       setItemForm(EMPTY_ITEM);
@@ -157,6 +158,7 @@ export default function AdminPage() {
       brand:       item.brand || "",
       category:    item.category || "",
       size:        item.size || "",
+      wears:       item.wears || "",
       price:       item.price ? (item.price / 100).toString() : "",
       condition:   item.condition || "",
       description: item.description || "",
@@ -187,6 +189,7 @@ export default function AdminPage() {
           brand:       editForm.brand || null,
           category:    editForm.category || null,
           size:        editForm.size || null,
+          wears:       editForm.wears || null,
           price:       Math.round(parseFloat(editForm.price) * 100),
           condition:   editForm.condition || null,
           description: editForm.description || null,
@@ -322,6 +325,11 @@ export default function AdminPage() {
                 </div>
 
                 <div>
+                  <Label>Wears</Label>
+                  <Select value={itemForm.wears} onChange={e => setItemForm(f => ({ ...f, wears: e.target.value }))} options={WEARS} placeholder="Select wears…"/>
+                </div>
+
+                <div>
                   <Label>Buy Price (USD) *</Label>
                   <Input type="number" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} placeholder="85"/>
                 </div>
@@ -419,6 +427,10 @@ export default function AdminPage() {
                             <div>
                               <Label>Size</Label>
                               <Select value={editForm.size} onChange={e => setEditForm(f => ({ ...f, size: e.target.value }))} options={SIZES} placeholder="Select size…"/>
+                            </div>
+                            <div>
+                              <Label>Wears</Label>
+                              <Select value={editForm.wears} onChange={e => setEditForm(f => ({ ...f, wears: e.target.value }))} options={WEARS} placeholder="Select wears…"/>
                             </div>
                             <div>
                               <Label>Condition</Label>

@@ -35,6 +35,13 @@ function getWearRange(count) {
   if (count <= 29) return "16-29 wears";
   return "30+ wears";
 }
+function wearsLabel(wears) {
+  if (!wears) return null;
+  if (wears === "0-10 wears") return "Like New";
+  if (wears === "10-20 wears") return "~15 wears";
+  if (wears === "20-30 wears") return "~25 wears";
+  return wears;
+}
 
 const STATIC_ITEMS = [
   { id:1,  name:"Ivory Oxford Shirt",        brand:"J.Crew",         category:"Oxford Shirt", occasion:"Campus",    style:"Preppy",    season:"Fall/Winter",  buyPrice:85,  condition:"Like New", rentalCount:3,  color:"#f5f0e8", emoji:"👕", description:"A crisp ivory oxford with a relaxed fit. Works everywhere, all semester." },
@@ -88,6 +95,7 @@ function dbItemToUi(row) {
     stock: row.stock || 1,
     image_url: row.image_url || null,
     wardrobe_id: row.wardrobe_id ?? null,
+    wears: row.wears || null,
   };
 }
 
@@ -361,11 +369,35 @@ function MiniItemCard({ item, setPage }) {
 }
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
-function HomePage({ setPage }) {
+function NewArrivalCard({ item, setPage }) {
+  const [hov, setHov] = useState(false);
+  const [imgErr, setImgErr] = useState(false);
+  const showImg = item.image_url && !imgErr;
+  return (
+    <div onClick={()=>setPage(`item-${item.id}`)} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{ cursor:"pointer", background:"#fff", border:`1px solid ${hov?S.tan:S.stone}`, transition:"transform 0.2s,box-shadow 0.2s", transform:hov?"translateY(-3px)":"none", boxShadow:hov?"0 12px 32px rgba(0,0,0,0.08)":"none" }}>
+      <div style={{ height:200, background: showImg?"#f5f3f0":"#e8e3dc", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+        {showImg
+          ? <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}/>
+          : <div style={{ fontSize:40, color:S.muted }}>👕</div>
+        }
+      </div>
+      <div style={{ padding:"14px 16px 18px" }}>
+        <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, marginBottom:4 }}>{item.brand}</p>
+        <h3 style={{ fontFamily:S.serif, fontSize:16, fontWeight:600, color:S.ink, marginBottom:8, lineHeight:1.2 }}>{item.name}</h3>
+        <span style={{ fontFamily:S.serif, fontSize:19, fontWeight:700, color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans, fontSize:9, color:S.muted }}>/mo</span></span>
+      </div>
+    </div>
+  );
+}
+
+function HomePage({ setPage, items=[], loadingItems=false }) {
   const isMobile = useMobile();
   const featured = STATIC_ITEMS.filter(i=>i.condition==="Like New").slice(0,3);
   const founderRef = useRef(null);
   const [founderVisible, setFounderVisible] = useState(false);
+  const [dbWardrobes, setDbWardrobes] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
 
   useEffect(() => {
     const el = founderRef.current;
@@ -377,6 +409,13 @@ function HomePage({ setPage }) {
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    fetch("/api/wardrobes").then(r=>r.json()).then(d=>setDbWardrobes(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch("/api/posts").then(r=>r.json()).then(d=>setRecentPosts(Array.isArray(d)?d.slice(0,2):[])).catch(()=>{});
+  }, []);
+
+  const newArrivals = items.slice(0, 4);
 
   return (
     <div>
@@ -521,44 +560,64 @@ function HomePage({ setPage }) {
         </div>
       </section>
 
-      {/* Wardrobe preview */}
-      <section style={{ padding:"80px 40px", background:S.ink }}>
-        <div style={{ maxWidth:1080, margin:"0 auto" }}>
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:44,flexWrap:"wrap",gap:20 }}>
-            <div>
-              <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:12 }}>Curated by Davenport</p>
-              <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,color:S.cream,letterSpacing:"-1px" }}>Shop by Wardrobe.</h2>
-              <p style={{ fontFamily:S.sans,fontSize:15,color:"#6b7280",marginTop:10,maxWidth:420 }}>Full seasonal wardrobes built around a vibe. Take the whole thing or pick the pieces you want.</p>
+      {/* New Arrivals */}
+      {(newArrivals.length > 0 || !loadingItems) && (
+        <section style={{ padding: isMobile ? "40px 16px" : "72px 40px", background:"#fff" }}>
+          <div style={{ maxWidth:1080, margin:"0 auto" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: isMobile ? 24 : 40, flexWrap:"wrap", gap:12 }}>
+              <div>
+                <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Fresh In</p>
+                <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 44, fontWeight:600, letterSpacing:"-1px", color:S.ink }}>New Arrivals.</h2>
+              </div>
+              <button onClick={()=>setPage("browse")} style={{ background:"none", border:`1px solid #c9bfb0`, cursor:"pointer", padding:"10px 24px", fontFamily:S.sans, fontSize:11, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", color:"#6b5e4e", minHeight:40 }}>
+                Shop All
+              </button>
             </div>
-            <button onClick={()=>setPage("wardrobes")} style={{ background:"transparent",color:S.cream,border:"1px solid #374151",cursor:"pointer",padding:"10px 24px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>
-              See All Wardrobes
+            {loadingItems ? (
+              <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, fontStyle:"italic" }}>Loading…</p>
+            ) : newArrivals.length === 0 ? (
+              <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 10 : 22 }}>
+                {featured.map(item=><MiniItemCard key={item.id} item={item} setPage={setPage}/>)}
+              </div>
+            ) : (
+              <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(4,1fr)", gap: isMobile ? 10 : 22 }}>
+                {newArrivals.map(item=><NewArrivalCard key={item.id} item={item} setPage={setPage}/>)}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Featured Wardrobes */}
+      <section style={{ padding: isMobile ? "40px 16px" : "72px 40px", background:S.ink }}>
+        <div style={{ maxWidth:1080, margin:"0 auto" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: isMobile ? 24 : 40, flexWrap:"wrap", gap:12 }}>
+            <div>
+              <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:"#6b5e4e", marginBottom:10 }}>Curated by Davenport</p>
+              <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 44, fontWeight:600, color:S.cream, letterSpacing:"-1px" }}>Shop by Wardrobe.</h2>
+            </div>
+            <button onClick={()=>setPage("wardrobes")} style={{ background:"transparent", color:S.cream, border:"1px solid #374151", cursor:"pointer", padding:"10px 24px", fontFamily:S.sans, fontSize:11, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", minHeight:40 }}>
+              View All Wardrobes
             </button>
           </div>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16 }}>
-            {WARDROBES.slice(0,3).map(w=>{
-              const pieces = w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
-              const monthlySum = pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
-              return (
-                <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} dark={true}/>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured pieces */}
-      <section style={{ padding:"88px 40px",background:"#fff" }}>
-        <div style={{ maxWidth:1080,margin:"0 auto" }}>
-          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:52 }}>
-            <div>
-              <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Fresh In</p>
-              <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink }}>Brand new. Never worn.</h2>
+          {dbWardrobes.length > 0 ? (
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: isMobile ? 14 : 20 }}>
+              {dbWardrobes.slice(0,3).map(w => {
+                const wPieces = items.filter(i => i.wardrobe_id === w.id);
+                return (
+                  <WardrobeSlideCard key={w.id} wardrobe={w} pieces={wPieces} itemCount={wPieces.length} isMobile={isMobile} onView={()=>setPage(`wardrobe-db-${w.id}`)}/>
+                );
+              })}
             </div>
-            <button onClick={()=>setPage("browse")} style={{ background:"none",border:`1px solid #c9bfb0`,cursor:"pointer",padding:"10px 24px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:"#6b5e4e" }}>View All</button>
-          </div>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:28 }}>
-            {featured.map(item=><MiniItemCard key={item.id} item={item} setPage={setPage}/>)}
-          </div>
+          ) : (
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3,1fr)", gap: isMobile ? 14 : 20 }}>
+              {WARDROBES.slice(0,3).map(w=>{
+                const pieces = w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
+                const monthlySum = pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
+                return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} dark={true}/>;
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -573,34 +632,55 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Community teaser */}
-      <section style={{ padding:"88px 40px", background:S.ink }}>
+      <section style={{ padding: isMobile ? "40px 16px" : "72px 40px", background:S.cream, borderTop:`1px solid ${S.stone}` }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom:44, flexWrap:"wrap", gap:20 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", marginBottom: isMobile ? 20 : 36, flexWrap:"wrap", gap:12 }}>
             <div>
-              <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:"#6b5e4e", marginBottom:12 }}>The Community</p>
-              <h2 style={{ fontFamily:S.serif, fontSize:44, fontWeight:600, color:S.cream, letterSpacing:"-1px" }}>Worn by real people.</h2>
+              <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>The Community</p>
+              <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 44, fontWeight:600, color:S.ink, letterSpacing:"-1px" }}>Worn by real people.</h2>
             </div>
-            <button onClick={()=>setPage("community")} style={{ background:"transparent", color:S.cream, border:"1px solid #374151", cursor:"pointer", padding:"10px 24px", fontFamily:S.sans, fontSize:11, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>
-              See All Posts
+            <button onClick={()=>setPage("community")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"11px 24px", fontFamily:S.sans, fontSize:11, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", minHeight:44 }}>
+              Join the Community
             </button>
           </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16 }}>
-            {POSTS.slice(0,3).map(post => (
-              <div key={post.id} onClick={()=>setPage("community")} style={{ cursor:"pointer", background:post.bg, height:240, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:"18px", position:"relative", overflow:"hidden" }}>
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 100%)" }}/>
-                {post.id % 3 === 0 && (
-                  <div style={{ position:"absolute", top:12, left:12, display:"flex", alignItems:"center", gap:5, background:"rgba(0,0,0,0.5)", padding:"3px 8px", borderRadius:2, zIndex:1 }}>
-                    <div style={{ width:0, height:0, borderTop:"4px solid transparent", borderBottom:"4px solid transparent", borderLeft:"6px solid #fff" }}/>
-                    <span style={{ fontFamily:S.sans, fontSize:8, color:"#fff", letterSpacing:"0.06em" }}>VIDEO</span>
+          {recentPosts.length > 0 ? (
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20 }}>
+              {recentPosts.map(post => (
+                <div key={post.id} onClick={()=>setPage("community")} style={{ cursor:"pointer", background:"#fff", border:`1px solid ${S.stone}` }}>
+                  <div style={{ height: isMobile ? 220 : 260, background:"#e8e3dc", display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", position:"relative" }}>
+                    {post.image_url
+                      ? <img src={post.image_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+                      : <div style={{ fontSize:44, opacity:0.4 }}>👤</div>
+                    }
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.5) 100%)" }}/>
+                    <div style={{ position:"absolute", bottom:14, left:14 }}>
+                      <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:"#fff" }}>@{post.user_name || "member"}</p>
+                    </div>
                   </div>
-                )}
-                <div style={{ position:"relative", zIndex:1 }}>
-                  <p style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, color:"#fff", marginBottom:3 }}>@{post.user}</p>
-                  <p style={{ fontFamily:S.sans, fontSize:10, color:"rgba(255,255,255,0.6)" }}>{post.school}</p>
+                  <div style={{ padding:"14px 16px" }}>
+                    <p style={{ fontFamily:S.sans, fontSize:13, color:S.ink, lineHeight:1.65, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{post.caption}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 14 : 20 }}>
+              {POSTS.slice(0,2).map(post => (
+                <div key={post.id} onClick={()=>setPage("community")} style={{ cursor:"pointer", background:"#fff", border:`1px solid ${S.stone}` }}>
+                  <div style={{ height: isMobile ? 220 : 260, background:post.bg, display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:18, position:"relative", overflow:"hidden" }}>
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55) 100%)" }}/>
+                    <div style={{ position:"relative", zIndex:1 }}>
+                      <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:"#fff", marginBottom:2 }}>@{post.user}</p>
+                      <p style={{ fontFamily:S.sans, fontSize:10, color:"rgba(255,255,255,0.65)" }}>{post.school}</p>
+                    </div>
+                  </div>
+                  <div style={{ padding:"14px 16px" }}>
+                    <p style={{ fontFamily:S.sans, fontSize:13, color:S.ink, lineHeight:1.65, display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>{post.caption}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -745,7 +825,7 @@ function WardrobeSlideCard({ wardrobe, pieces, itemCount, isMobile, onView }) {
             key={currentPhoto.id}
             src={currentPhoto.image_url}
             alt={currentPhoto.name}
-            style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", opacity: fade ? 1 : 0, transition:"opacity 0.3s ease" }}
+            style={{ width:"100%", height:"100%", objectFit:"contain", display:"block", opacity: fade ? 1 : 0, transition:"opacity 0.3s ease" }}
           />
         )}
         {photos.length > 1 && (
@@ -901,7 +981,6 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
   const [quizDone, setQuizDone] = useState(false);
   const [dbWardrobes, setDbWardrobes] = useState([]);
   const [loadingWardrobes, setLoadingWardrobes] = useState(true);
-  const [catFilter, setCatFilter] = useState(null);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
@@ -928,15 +1007,7 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Curated by Davenport</p>
           <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 36 : 48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:14 }}>Wardrobes.</h1>
-          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520, marginBottom:24 }}>Each wardrobe is a full collection built around a vibe. Browse the pieces and pick what you want.</p>}
-          <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop: isMobile ? 16 : 0 }}>
-            {[null, ...CATEGORIES].map(c=>(
-              <button key={c??"all"} onClick={()=>setCatFilter(catFilter===c?null:c)}
-                style={{ background:catFilter===c?S.ink:"#fff", color:catFilter===c?S.cream:S.muted, border:`1px solid ${catFilter===c?S.ink:S.stone}`, padding: isMobile?"8px 12px":"6px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", minHeight:36 }}>
-                {c??"All"}
-              </button>
-            ))}
-          </div>
+          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520 }}>Each wardrobe is a full collection built around a vibe. Browse the pieces and pick what you want.</p>}
         </div>
       </div>
 
@@ -949,8 +1020,6 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(340px,1fr))", gap: isMobile ? 16 : 28 }}>
             {dbWardrobes.map(w => {
               const allPieces = items.filter(i => i.wardrobe_id === w.id);
-              const count = catFilter ? allPieces.filter(i => i.category === catFilter).length : allPieces.length;
-              if (catFilter && count === 0) return null;
               return (
                 <WardrobeSlideCard key={w.id} wardrobe={w} pieces={allPieces} itemCount={allPieces.length} isMobile={isMobile} onView={()=>handleDbWardrobeClick(w.id)}/>
               );
@@ -1146,11 +1215,12 @@ function AuthGate() {
   );
 }
 
-function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading, initialWardrobe=null }) {
+function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading, initialWardrobe=null, initialShopNew=false }) {
   const isMobile = useMobile();
   const { isSignedIn, isLoaded } = useUser();
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
+  const [shopNew,setShopNew]=useState(initialShopNew);
   const [sort,setSort]=useState("price-asc");
   const [wardrobeFilter,setWardrobeFilter]=useState(initialWardrobe);
   const [dbWardrobes,setDbWardrobes]=useState([]);
@@ -1171,6 +1241,7 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading, i
   const filtered = items
     .filter(i=>wardrobeFilter===null||i.wardrobe_id===wardrobeFilter)
     .filter(i=>!newOnly||i.condition==="Like New")
+    .filter(i=>!shopNew||i.wears==="0-10 wears")
     .filter(i=>filters.occasion==="All"||!i.occasion||i.occasion===filters.occasion)
     .filter(i=>filters.style==="All"||!i.style||i.style===filters.style)
     .filter(i=>filters.season==="All"||!i.season||i.season===filters.season)
@@ -1200,11 +1271,13 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading, i
           </div>
         )}
 
-        <div style={{ marginBottom:16,display:"flex",alignItems:"center",gap:10 }}>
+        <div style={{ marginBottom:16,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" }}>
           <button onClick={()=>setNewOnly(n=>!n)} style={{ background:newOnly?S.ink:"#fff",color:newOnly?S.cream:S.ink,border:`1px solid ${newOnly?S.ink:S.stone}`,padding:"8px 16px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,minHeight:40 }}>
             {newOnly&&<span style={{ fontSize:10 }}>✓</span>}Shop Brand New
           </button>
-          {!isMobile&&newOnly&&<span style={{ fontFamily:S.sans,fontSize:11,color:S.muted,fontStyle:"italic" }}>Showing only never-worn pieces</span>}
+          <button onClick={()=>setShopNew(n=>!n)} style={{ background:shopNew?S.tan:"#fff",color:shopNew?S.cream:S.ink,border:`1px solid ${shopNew?S.tan:S.stone}`,padding:"8px 16px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,minHeight:40 }}>
+            {shopNew&&<span style={{ fontSize:10 }}>✓</span>}Shop New (0–10 Wears)
+          </button>
         </div>
 
         {/* Filters */}
@@ -1280,21 +1353,26 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy, isMobile=fa
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{ background:"#fff",border:`1px solid ${S.stone}`,transition:"transform 0.2s,box-shadow 0.2s",transform:hov&&!isMobile?"translateY(-4px)":"none",boxShadow:hov&&!isMobile?"0 16px 40px rgba(0,0,0,0.09)":"none" }}>
       <div onClick={()=>setPage(`item-${item.id}`)} style={{ cursor:"pointer" }}>
-        {showImg ? (
-          <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)}
-            style={{ width:"100%", height: isMobile ? "auto" : 150, aspectRatio: isMobile ? "1" : "auto", objectFit:"cover", display:"block" }}/>
-        ) : item._dbId != null ? (
-          <div style={{ aspectRatio: isMobile ? "1" : "auto", height: isMobile ? "auto" : 150, background:"#e8e3dc" }}/>
-        ) : (
-          <div style={{ aspectRatio: isMobile ? "1" : "auto", height: isMobile ? "auto" : 150, background:item.color, display:"flex", alignItems:"center", justifyContent:"center", fontSize: isMobile ? 44 : 40 }}>
-            {item.emoji}
-          </div>
-        )}
-        <div style={{ padding: isMobile ? "10px 10px 8px" : "15px 16px 10px" }}>
+        <div style={{ position:"relative", width:"100%", height: isMobile ? "auto" : 160, aspectRatio: isMobile ? "1" : "auto", background: showImg ? "#f5f3f0" : item._dbId != null ? "#e8e3dc" : item.color, overflow:"hidden" }}>
+          {showImg ? (
+            <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)}
+              style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}/>
+          ) : item._dbId != null ? null : (
+            <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize: isMobile ? 44 : 40 }}>
+              {item.emoji}
+            </div>
+          )}
+          {item.wears && (
+            <div style={{ position:"absolute", top:7, left:7, background:"rgba(10,10,10,0.72)", color:"#fff", fontFamily:S.sans, fontSize:9, fontWeight:600, letterSpacing:"0.06em", padding:"3px 8px", backdropFilter:"blur(4px)" }}>
+              {wearsLabel(item.wears)}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: isMobile ? "10px 10px 8px" : "13px 14px 8px" }}>
           <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:2 }}>{item.brand}</p>
-          <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 13 : 16,fontWeight:600,color:S.ink,marginBottom: isMobile ? 4 : 6,lineHeight:1.2 }}>{item.name}</h3>
+          <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 13 : 15,fontWeight:600,color:S.ink,marginBottom: isMobile ? 4 : 5,lineHeight:1.2 }}>{item.name}</h3>
           <div>
-            <span style={{ fontFamily:S.serif,fontSize: isMobile ? 17 : 21,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
+            <span style={{ fontFamily:S.serif,fontSize: isMobile ? 17 : 20,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
             {!isMobile && <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:3 }}>Buy outright: ${getBuyPrice(item)}</p>}
           </div>
         </div>
@@ -1329,13 +1407,18 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
       <div style={{ maxWidth:1020,margin:"0 auto",padding:"52px 40px" }}>
         <button onClick={()=>setPage("browse")} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:11,letterSpacing:"0.1em",textTransform:"uppercase",color:S.tan,marginBottom:36 }}>← Back to Catalog</button>
         <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:60 }}>
-          {item.image_url && !imgErr ? (
-            <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)} style={{ width:"100%", height:420, objectFit:"cover", display:"block" }}/>
-          ) : item._dbId != null ? (
-            <div style={{ height:420, background:"#e8e3dc" }}/>
-          ) : (
-            <div style={{ background:item.color, height:420, display:"flex", alignItems:"center", justifyContent:"center", fontSize:110 }}>{item.emoji}</div>
-          )}
+          <div style={{ position:"relative", height:420, background: (item.image_url && !imgErr) ? "#f5f3f0" : item._dbId != null ? "#e8e3dc" : item.color, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            {item.image_url && !imgErr ? (
+              <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}/>
+            ) : item._dbId == null ? (
+              <div style={{ fontSize:110 }}>{item.emoji}</div>
+            ) : null}
+            {item.wears && (
+              <div style={{ position:"absolute", top:12, left:12, background:"rgba(10,10,10,0.75)", color:"#fff", fontFamily:S.sans, fontSize:11, fontWeight:600, letterSpacing:"0.08em", padding:"5px 12px" }}>
+                {wearsLabel(item.wears)}
+              </div>
+            )}
+          </div>
           <div>
             <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.16em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>{item.brand} · {item.category} · {item.occasion}</p>
             <h1 style={{ fontFamily:S.serif,fontSize:42,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>{item.name}</h1>
@@ -1842,22 +1925,24 @@ function CommunityPage({ setPage }) {
   return (
     <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
       {/* Header */}
-      <div style={{ padding: isMobile ? "20px 16px 16px" : "52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
+      <div style={{ padding: isMobile ? "20px 16px 14px" : "52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems: isMobile ? "center" : "flex-end", flexWrap:"wrap", gap:12 }}>
             <div>
               {!isMobile && <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>The Community</p>}
-              <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 48, fontWeight:600, letterSpacing:"-1px", color:S.ink }}>{isMobile ? "Community" : "Worn by real people."}</h1>
+              <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 26 : 48, fontWeight:600, letterSpacing:"-1px", color:S.ink }}>{isMobile ? "Community" : "Worn by real people."}</h1>
             </div>
-            <button onClick={handleShareClick} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding: isMobile ? "12px 20px" : "10px 22px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", minHeight:48, flexShrink:0 }}>
-              + Share
-            </button>
+            {!isMobile && (
+              <button onClick={handleShareClick} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"10px 22px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", minHeight:48, flexShrink:0 }}>
+                + Share Your Look
+              </button>
+            )}
           </div>
           {/* School filter */}
-          <div style={{ display:"flex", gap:6, marginTop:16, overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap", paddingBottom: isMobile ? 4 : 0 }}>
+          <div style={{ display:"flex", gap:6, marginTop: isMobile ? 12 : 16, overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap", paddingBottom: isMobile ? 4 : 0 }}>
             {schools.map(s => (
               <button key={s} onClick={() => setFilter(s)}
-                style={{ background:filter===s?S.ink:"#fff", color:filter===s?S.cream:S.muted, border:`1px solid ${filter===s?S.ink:S.stone}`, padding: isMobile ? "8px 14px" : "5px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", flexShrink:0, minHeight:38 }}>
+                style={{ background:filter===s?S.ink:"#fff", color:filter===s?S.cream:S.muted, border:`1px solid ${filter===s?S.ink:S.stone}`, padding: isMobile ? "7px 12px" : "5px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", flexShrink:0, minHeight:36 }}>
                 {s}
               </button>
             ))}
@@ -1926,7 +2011,7 @@ function CommunityPage({ setPage }) {
                 </div>
               </div>
             ))}
-            <div style={{ padding:"36px 20px", background:S.ink, textAlign:"center" }}>
+            <div style={{ padding:"36px 20px 100px", background:S.ink, textAlign:"center" }}>
               <h2 style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:10 }}>Wearing Davenport?</h2>
               <p style={{ fontFamily:S.sans, fontSize:13, color:"#6b7280", marginBottom:24 }}>Tag <strong style={{ color:S.gold }}>@davenportwardrobe</strong> to be featured.</p>
               <button onClick={handleShareClick} style={{ background:S.gold, color:S.ink, border:"none", cursor:"pointer", padding:"16px 32px", fontFamily:S.sans, fontSize:13, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", width:"100%", minHeight:54 }}>
@@ -2000,6 +2085,13 @@ function CommunityPage({ setPage }) {
           </>
         )}
       </div>
+
+      {/* Floating post button — mobile only */}
+      {isMobile && (
+        <button onClick={handleShareClick} style={{ position:"fixed", bottom:76, right:16, zIndex:300, background:S.ink, color:S.cream, border:"none", cursor:"pointer", width:56, height:56, borderRadius:"50%", fontFamily:S.sans, fontSize:26, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 4px 20px rgba(0,0,0,0.3)" }}>
+          +
+        </button>
+      )}
 
       {/* Share Your Look modal */}
       {showPost && (
@@ -2138,8 +2230,8 @@ export default function App() {
   }
 
   function render(){
-    if(page==="waitlist")      return <HomePage setPage={nav}/>;
-    if(page==="home")          return <HomePage setPage={nav}/>;
+    if(page==="waitlist")      return <HomePage setPage={nav} items={items} loadingItems={loadingItems}/>;
+    if(page==="home")          return <HomePage setPage={nav} items={items} loadingItems={loadingItems}/>;
     if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy} loading={loadingItems}/>;
     if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items}/>;
