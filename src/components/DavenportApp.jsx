@@ -417,6 +417,8 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
 
   const newArrivals = items.slice(0, 4);
 
+  const peekItems = newArrivals.filter(i => i.image_url).slice(0, 4);
+
   return (
     <div>
       <style>{`
@@ -425,52 +427,102 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
           to   { opacity: 1; transform: translateY(0); }
         }
         .founder-animate { animation: fadeUp 0.75s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes peekIn {
+          from { opacity: 0; transform: translateX(28px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .peek-item { animation: peekIn 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes peekUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .peek-item-mob { animation: peekUp 0.55s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
       {/* Hero */}
-      <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding: isMobile ? "0 24px 48px" : "0 64px 0", position:"relative", overflow:"hidden" }}>
-        {!isMobile && <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>}
-        <div style={{ position:"relative", zIndex:1, maxWidth:1080, margin:"0 auto", width:"100%" }}>
-          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 10 : 11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom: isMobile ? 20 : 32, fontWeight:600 }}>Better clothes. Less effort.</p>
-          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? "clamp(52px,14vw,72px)" : "clamp(56px,8.5vw,120px)", fontWeight:600, lineHeight:0.92, letterSpacing:"-3px", color:S.ink, marginBottom: isMobile ? 28 : 48, maxWidth:800 }}>
+      <section style={{ minHeight:"calc(75vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding: isMobile ? "32px 24px 36px" : "0 64px 0", position:"relative", overflow:"hidden" }}>
+        {/* Big D watermark — only when no peek items */}
+        {!isMobile && peekItems.length === 0 && (
+          <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>
+        )}
+
+        {/* Hero text — constrained left on desktop when peek is showing */}
+        <div style={{ position:"relative", zIndex:1, maxWidth: (!isMobile && peekItems.length > 0) ? 620 : 1080, margin:"0 auto", width:"100%" }}>
+          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 10 : 11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom: isMobile ? 16 : 28, fontWeight:600 }}>Better clothes. Less effort.</p>
+          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? "clamp(44px,12vw,64px)" : "clamp(52px,7.5vw,108px)", fontWeight:600, lineHeight:0.92, letterSpacing:"-3px", color:S.ink, marginBottom: isMobile ? 22 : 40, maxWidth:700 }}>
             A smarter way<br/>
             <em style={{ fontStyle:"italic", color:"#7a6a58" }}>for men</em><br/>
             to dress.
           </h1>
-          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 15 : 16, color:S.muted, lineHeight:1.75, maxWidth: isMobile ? "100%" : 440, marginBottom: isMobile ? 36 : 52 }}>
+          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 16, color:S.muted, lineHeight:1.75, maxWidth: isMobile ? "100%" : 400, marginBottom: isMobile ? 28 : 44 }}>
             A curated wardrobe subscription for college men. Wear the brands you actually want — pay only for what's in your Suitcase.
           </p>
-          <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", gap:12 }}>
-            <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"17px 40px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:54, width: isMobile ? "100%" : "auto" }}>Shop Wardrobes</button>
-            <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"17px 40px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:54, width: isMobile ? "100%" : "auto" }}>Shop Pieces</button>
+          <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", gap:10 }}>
+            <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"15px 36px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:50, width: isMobile ? "100%" : "auto" }}>Shop Wardrobes</button>
+            <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"15px 36px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:50, width: isMobile ? "100%" : "auto" }}>Shop Pieces</button>
           </div>
+
+          {/* Mobile peek strip — horizontal, below CTA buttons */}
+          {isMobile && peekItems.length > 0 && (
+            <div style={{ display:"flex", gap:8, marginTop:28, marginLeft:-24, marginRight:-24, paddingLeft:24, overflowX:"hidden" }}>
+              {peekItems.map((item, i) => (
+                <div key={item.id} className="peek-item-mob"
+                  onClick={()=>setPage("browse")}
+                  style={{ flexShrink:0, width:90, height:110, background:"#f5f3f0", border:`1px solid ${S.stone}`, cursor:"pointer", overflow:"hidden", animationDelay:`${i*0.1}s` }}>
+                  <img src={item.image_url} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}
+                    onError={e=>e.currentTarget.parentElement.style.background="#e8e3dc"}/>
+                </div>
+              ))}
+              {/* Partially-visible overflow hint */}
+              <div style={{ flexShrink:0, width:50, height:110, background:"linear-gradient(to right, #f5f3f0, transparent)", pointerEvents:"none" }}/>
+            </div>
+          )}
         </div>
+
+        {/* Desktop peek strip — right edge, vertical */}
+        {!isMobile && peekItems.length > 0 && (
+          <div style={{ position:"absolute", right:0, top:"50%", transform:"translateY(-50%)", display:"flex", flexDirection:"column", gap:6, zIndex:2 }}>
+            {peekItems.map((item, i) => (
+              <div key={item.id} className="peek-item"
+                onClick={()=>setPage("browse")}
+                style={{ width:148, height:162, background:"#f5f3f0", borderLeft:`1px solid ${S.stone}`, borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, cursor:"pointer", overflow:"hidden", animationDelay:`${i*0.1+0.2}s`, position:"relative" }}>
+                <img src={item.image_url} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}
+                  onError={e=>{ e.currentTarget.style.display="none"; e.currentTarget.parentElement.style.background="#e8e3dc"; }}/>
+                {/* Fade-right edge to hint more content */}
+                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to left, rgba(250,249,247,0.5) 0%, transparent 40%)", pointerEvents:"none" }}/>
+              </div>
+            ))}
+            <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, textAlign:"center", marginTop:4 }}>New In →</p>
+          </div>
+        )}
+
+        {/* Scroll hint */}
         {!isMobile && (
-          <div style={{ position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+          <div style={{ position:"absolute", bottom:24, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
             <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase", color:S.tan }}>Scroll</p>
-            <div style={{ width:1, height:32, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
+            <div style={{ width:1, height:28, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
           </div>
         )}
       </section>
 
-      {/* Founder Story */}
+      {/* Founder Story — immediately after hero */}
       <section
         ref={founderRef}
-        style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, padding: isMobile ? "52px 24px" : "88px 64px", opacity: founderVisible ? 1 : 0 }}
+        style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, padding: isMobile ? "44px 24px" : "72px 64px", opacity: founderVisible ? 1 : 0 }}
       >
         <div
           className={founderVisible ? "founder-animate" : ""}
-          style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns: isMobile ? "1fr" : "300px 1fr", gap: isMobile ? "32px" : "64px", alignItems:"start" }}
+          style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns: isMobile ? "1fr" : "260px 1fr", gap: isMobile ? "28px" : "60px", alignItems:"start" }}
         >
           <div style={{ flexShrink:0 }}>
-            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" referrerPolicy="no-referrer" crossOrigin="anonymous" style={{ width: isMobile ? "140px" : "100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}/>
-            <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, marginTop:14, letterSpacing:"0.04em" }}>Ben Davenport</p>
+            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" referrerPolicy="no-referrer" crossOrigin="anonymous" style={{ width: isMobile ? "120px" : "100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}/>
+            <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, marginTop:12, letterSpacing:"0.04em" }}>Ben Davenport</p>
             <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted, marginTop:2 }}>Founder · Penn State</p>
           </div>
           <div>
-            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:14, fontWeight:500 }}>Founder</p>
-            <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 32 : "clamp(32px,4vw,52px)", fontWeight:600, letterSpacing:"-1px", color:S.ink, marginBottom:32, lineHeight:1.05 }}>Why I Built This</h2>
-            <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
+            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:12, fontWeight:500 }}>Founder</p>
+            <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 30 : "clamp(30px,3.8vw,48px)", fontWeight:600, letterSpacing:"-1px", color:S.ink, marginBottom:28, lineHeight:1.05 }}>Why I Built This</h2>
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
               {[
                 "I'm Ben Davenport, a student at Penn State — and like most guys in college, I spent way too much money on clothes I didn't need, that didn't fit right, and that I had to haul back and forth every semester.",
                 "It started in high school when I learned about fast fashion and the damage it does — to the environment, to our wallets, to the way we actually think about style. I kept thinking: there has to be a better way.",
@@ -481,7 +533,7 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
               ))}
               <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 15, color:S.ink, lineHeight:1.9, fontWeight:500 }}>I built this because I needed it. And I think you do too.</p>
             </div>
-            <p style={{ fontFamily:S.serif, fontSize:24, fontWeight:600, color:S.ink, marginTop:32, fontStyle:"italic" }}>— Ben</p>
+            <p style={{ fontFamily:S.serif, fontSize:22, fontWeight:600, color:S.ink, marginTop:28, fontStyle:"italic" }}>— Ben</p>
           </div>
         </div>
       </section>
