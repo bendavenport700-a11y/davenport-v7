@@ -39,10 +39,10 @@ export async function POST(req) {
     return Response.json({ error: "Cannot refer yourself" }, { status: 400 });
   }
 
-  await sql`UPDATE users SET points = points + 10 WHERE clerk_id = ${referrer.clerk_id}`;
+  await sql`UPDATE users SET points = points + 1 WHERE clerk_id = ${referrer.clerk_id}`;
   await sql`
     INSERT INTO points_history (clerk_id, amount, reason)
-    VALUES (${referrer.clerk_id}, 10, 'Referral signup')
+    VALUES (${referrer.clerk_id}, 1, 'Referral signup')
   `;
   return Response.json({ ok: true });
 }

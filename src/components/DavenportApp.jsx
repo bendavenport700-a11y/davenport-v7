@@ -1581,7 +1581,7 @@ function CommunityPage({ setPage }) {
       await fetch("/api/points", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clerk_id: user.id, amount: 50, reason: "Community post" }),
+        body: JSON.stringify({ clerk_id: user.id, amount: 5, reason: "Community post" }),
       });
       setPostStatus("done");
     } catch {
@@ -1713,7 +1713,7 @@ function CommunityPage({ setPage }) {
               <div style={{ textAlign:"center", paddingTop:12, paddingBottom:12 }}>
                 <div style={{ fontSize:40, marginBottom:16 }}>🎉</div>
                 <h3 style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.ink, marginBottom:10 }}>Look submitted!</h3>
-                <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, marginBottom:6 }}>You earned <strong style={{ color:S.ink }}>50 pts</strong> for sharing your fit.</p>
+                <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, marginBottom:6 }}>You earned <strong style={{ color:S.ink }}>5 pts</strong> for sharing your fit.</p>
                 <p style={{ fontFamily:S.sans, fontSize:12, color:S.tan, marginBottom:28 }}>Points added to your account.</p>
                 <button onClick={() => setShowPost(false)} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"12px 32px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>Done</button>
               </div>
@@ -1721,7 +1721,7 @@ function CommunityPage({ setPage }) {
               <form onSubmit={handlePostSubmit}>
                 <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10, fontWeight:500 }}>Share Your Look</p>
                 <h3 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:6 }}>Submit a post</h3>
-                <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:24, lineHeight:1.7 }}>Share your caption and tag your pieces. Earn <strong>50 pts</strong> instantly.</p>
+                <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:24, lineHeight:1.7 }}>Share your caption and tag your pieces. Earn <strong>5 pts</strong> instantly.</p>
                 <textarea
                   value={caption}
                   onChange={e => setCaption(e.target.value)}
@@ -1731,7 +1731,7 @@ function CommunityPage({ setPage }) {
                   style={{ width:"100%", padding:"12px 14px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, resize:"vertical", lineHeight:1.6, marginBottom:20, background:S.cream }}
                 />
                 <button type="submit" disabled={postStatus === "submitting" || !caption.trim()} style={{ width:"100%", background:postStatus==="submitting"?S.muted:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"14px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>
-                  {postStatus === "submitting" ? "Submitting…" : "Submit & Earn 50 pts"}
+                  {postStatus === "submitting" ? "Submitting…" : "Submit & Earn 5 pts"}
                 </button>
               </form>
             )}

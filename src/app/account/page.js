@@ -16,17 +16,13 @@ const S = {
 };
 
 const EARN_WAYS = [
-  { action: "Share a community post",   pts: 50,   icon: "📸" },
-  { action: "Refer a friend",           pts: 10,   icon: "🤝" },
-  { action: "Complete style quiz",      pts: 25,   icon: "✨" },
-  { action: "First rental month",       pts: 100,  icon: "🧳" },
-  { action: "Leave a piece review",     pts: 15,   icon: "⭐" },
+  { action: "Share a community post", pts: 5,  icon: "📸" },
+  { action: "Refer a friend",         pts: 1,  icon: "🤝" },
+  { action: "Leave a piece review",   pts: 10, icon: "⭐" },
 ];
 
 const REDEEM_WAYS = [
-  { reward: "1 free rental month",  pts: 1000, icon: "🎁" },
-  { reward: "$5 off your next box",  pts: 500,  icon: "💳" },
-  { reward: "Free shipping upgrade", pts: 250,  icon: "📦" },
+  { reward: "$10 off rentals $50+", pts: 100, icon: "🎁" },
 ];
 
 function formatDate(iso) {
@@ -84,7 +80,7 @@ export default function AccountPage() {
     );
   }
 
-  const progressPct = Math.min(100, ((points ?? 0) % 1000) / 10);
+  const progressPct = Math.min(100, ((points ?? 0) % 100));
 
   return (
     <div style={{ minHeight:"100vh", background:S.cream, fontFamily:S.sans }}>
@@ -113,12 +109,12 @@ export default function AccountPage() {
             <p style={{ fontSize:12, color:S.tan }}>points</p>
           </div>
           <div style={{ display:"flex", flexDirection:"column", justifyContent:"center" }}>
-            <p style={{ fontSize:12, color:"#9ca3af", marginBottom:10 }}>Progress to next free month</p>
+            <p style={{ fontSize:12, color:"#9ca3af", marginBottom:10 }}>Progress to next $10 off</p>
             <div style={{ background:"#1f2937", height:6, borderRadius:3, overflow:"hidden", marginBottom:8 }}>
               <div style={{ background:S.gold, height:"100%", width:`${progressPct}%`, transition:"width 0.6s ease", borderRadius:3 }}/>
             </div>
             <p style={{ fontSize:11, color:S.tan }}>
-              {points !== null ? `${(points ?? 0) % 1000} / 1000 pts` : "…"} — <strong style={{ color:S.gold }}>1,000 pts = 1 free month</strong>
+              {points !== null ? `${(points ?? 0) % 100} / 100 pts` : "…"} — <strong style={{ color:S.gold }}>100 pts = $10 off rentals $50+</strong>
             </p>
           </div>
         </div>
@@ -126,8 +122,8 @@ export default function AccountPage() {
         {/* Referral */}
         <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"32px 36px", marginBottom:32 }}>
           <p style={{ fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10, fontWeight:500 }}>Referral Program</p>
-          <h2 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:8 }}>Earn 10 pts per friend</h2>
-          <p style={{ fontSize:13, color:S.muted, marginBottom:20, lineHeight:1.7 }}>Share your link. When someone signs up with your code, you get 10 points. No limit.</p>
+          <h2 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:8 }}>Earn 1 pt per referral</h2>
+          <p style={{ fontSize:13, color:S.muted, marginBottom:20, lineHeight:1.7 }}>Share your link. When someone signs up with your code, you get 1 point. No limit.</p>
           {referralLink ? (
             <div style={{ display:"flex", gap:0, flexWrap:"wrap" }}>
               <div style={{ flex:1, background:S.cream, border:`1px solid ${S.stone}`, padding:"11px 16px", fontFamily:"monospace", fontSize:12, color:S.muted, minWidth:200, overflowX:"auto", whiteSpace:"nowrap" }}>
