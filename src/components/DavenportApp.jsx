@@ -199,19 +199,23 @@ const OUTFITS = [
 
 // pricing helpers defined above with data
 
+// ─── useMobile hook ───────────────────────────────────────────────────────────
+function useMobile() {
+  const [m, setM] = useState(false);
+  useEffect(() => {
+    const check = () => setM(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return m;
+}
+
 // ─── NAV ─────────────────────────────────────────────────────────────────────
 function Nav({ page, setPage, suitcase }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMobile();
   const { isSignedIn, user } = useUser();
   const [userPoints, setUserPoints] = useState(null);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 900);
-    const handler = () => setIsMobile(window.innerWidth < 900);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, []);
 
   useEffect(() => {
     if (!isSignedIn || !user?.id) { setUserPoints(null); return; }
@@ -221,9 +225,6 @@ function Nav({ page, setPage, suitcase }) {
       .catch(() => {});
   }, [isSignedIn, user?.id]);
 
-  // Close menu on page change
-  useEffect(() => { setMenuOpen(false); }, [page]);
-
   const navLinks = [
     ["wardrobes","Wardrobes"],
     ["browse","Shop Pieces"],
@@ -231,13 +232,44 @@ function Nav({ page, setPage, suitcase }) {
     ["sustainability","Our Mission"],
   ];
 
-  function go(p) { setPage(p); setMenuOpen(false); }
+  function go(p) { setPage(p); }
+
+  const TabIcon = ({ name, active }) => {
+    const c = active ? S.ink : "#9ca3af";
+    if (name === "home") return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+    );
+    if (name === "wardrobes") return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round">
+        <rect x="2" y="3" width="20" height="5" rx="1"/><rect x="2" y="10" width="20" height="5" rx="1"/><rect x="2" y="17" width="20" height="4" rx="1"/>
+      </svg>
+    );
+    if (name === "browse") return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    );
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+    );
+  };
+
+  const tabs = [
+    { key:"home",      label:"Home",      icon:"home" },
+    { key:"wardrobes", label:"Wardrobes", icon:"wardrobes" },
+    { key:"browse",    label:"Shop",      icon:"browse" },
+    { key:"_account",  label:"Account",   icon:"account" },
+  ];
 
   return (
     <>
-      <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px 0 32px",height:60 }}>
-        {/* Wordmark */}
-        <button onClick={()=>go("home")} style={{ fontFamily:S.serif,fontSize:26,fontWeight:700,letterSpacing:"-0.5px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
+      {/* Top bar */}
+      <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding: isMobile ? "0 16px 0 20px" : "0 24px 0 32px",height:60 }}>
+        <button onClick={()=>go("home")} style={{ fontFamily:S.serif,fontSize: isMobile ? 22 : 26,fontWeight:700,letterSpacing:"-0.5px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
           Davenport
           <span style={{ fontFamily:S.sans,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,background:"#f0ebe3",border:`1px solid #ddd5c8`,borderRadius:20,padding:"3px 8px",lineHeight:1 }}>Beta</span>
         </button>
@@ -274,62 +306,32 @@ function Nav({ page, setPage, suitcase }) {
           </div>
         )}
 
-        {/* Mobile right side */}
+        {/* Mobile: suitcase button only */}
         {isMobile && (
-          <div style={{ display:"flex",alignItems:"center",gap:12 }}>
-            <button onClick={()=>go("suitcase")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"8px 14px",fontFamily:S.sans,fontSize:11,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6 }}>
-              🧳{suitcase.length>0&&<span style={{ background:S.ink,color:S.cream,borderRadius:"50%",width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700 }}>{suitcase.length}</span>}
-            </button>
-            {/* Hamburger button */}
-            <button onClick={()=>setMenuOpen(o=>!o)} style={{ background:"none",border:"none",cursor:"pointer",padding:"8px",display:"flex",flexDirection:"column",gap:5,justifyContent:"center",alignItems:"center" }}>
-              <span style={{ display:"block",width:22,height:2,background:S.ink,transition:"all 0.25s",transform:menuOpen?"rotate(45deg) translate(5px,5px)":"none" }}/>
-              <span style={{ display:"block",width:22,height:2,background:S.ink,transition:"all 0.25s",opacity:menuOpen?0:1 }}/>
-              <span style={{ display:"block",width:22,height:2,background:S.ink,transition:"all 0.25s",transform:menuOpen?"rotate(-45deg) translate(5px,-5px)":"none" }}/>
-            </button>
-          </div>
+          <button onClick={()=>go("suitcase")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"10px 16px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",display:"flex",alignItems:"center",gap:6,minHeight:44 }}>
+            🧳 {suitcase.length>0&&<span style={{ background:S.ink,color:S.cream,borderRadius:"50%",width:18,height:18,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700 }}>{suitcase.length}</span>}
+          </button>
         )}
       </nav>
 
-      {/* Mobile dropdown */}
+      {/* Mobile bottom tab bar */}
       {isMobile && (
-        <div style={{
-          position:"fixed",top:60,left:0,right:0,zIndex:199,
-          background:"rgba(250,249,247,0.98)",backdropFilter:"blur(16px)",
-          borderBottom:`1px solid #ede8e1`,
-          maxHeight: menuOpen ? "500px" : "0px",
-          overflow:"hidden",
-          transition:"max-height 0.35s ease",
-        }}>
-          <div style={{ padding:"16px 24px 24px",display:"flex",flexDirection:"column",gap:2 }}>
-            {navLinks.map(([p,label])=>(
-              <button key={p} onClick={()=>go(p)} style={{ background:"none",border:"none",cursor:"pointer",fontFamily:S.sans,fontSize:14,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",color:page===p?S.ink:S.muted,padding:"13px 0",textAlign:"left",borderBottom:`1px solid ${S.stone}` }}>
-                {label}
+        <div style={{ position:"fixed",bottom:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.97)",backdropFilter:"blur(16px)",borderTop:"1px solid #ede8e1",display:"flex",height:64 }}>
+          {tabs.map(tab => {
+            const active = tab.key === "_account" ? false : page === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => tab.key === "_account" ? (window.location.href="/account") : go(tab.key)}
+                style={{ flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"none",border:"none",cursor:"pointer",gap:3,color:active?S.ink:"#9ca3af",minHeight:48,WebkitTapHighlightColor:"transparent" }}
+              >
+                <TabIcon name={tab.icon} active={active}/>
+                <span style={{ fontFamily:S.sans,fontSize:9,fontWeight:active?600:400,letterSpacing:"0.04em",textTransform:"uppercase" }}>{tab.label}</span>
+                {active && <div style={{ width:4,height:4,borderRadius:"50%",background:S.ink,position:"absolute",bottom:8 }}/>}
               </button>
-            ))}
-            {isSignedIn ? (
-              <div style={{ marginTop:16,display:"flex",alignItems:"center",gap:12,padding:"8px 0" }}>
-                <UserButton afterSignOutUrl="/" />
-                <div>
-                  <a href="/account" style={{ fontFamily:S.sans,fontSize:12,color:S.ink,textDecoration:"none",fontWeight:600 }}>Account</a>
-                  {userPoints !== null && (
-                    <a href="/account" style={{ display:"block",fontFamily:S.sans,fontSize:11,color:S.tan,textDecoration:"none",marginTop:2 }}>{userPoints} pts</a>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <SignInButton mode="modal">
-                <button style={{ marginTop:16,background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",width:"100%" }}>
-                  Sign In
-                </button>
-              </SignInButton>
-            )}
-          </div>
+            );
+          })}
         </div>
-      )}
-
-      {/* Backdrop to close menu */}
-      {isMobile && menuOpen && (
-        <div onClick={()=>setMenuOpen(false)} style={{ position:"fixed",inset:0,zIndex:198,background:"rgba(0,0,0,0.2)" }}/>
       )}
     </>
   );
@@ -356,6 +358,7 @@ function MiniItemCard({ item, setPage }) {
 
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 function HomePage({ setPage }) {
+  const isMobile = useMobile();
   const featured = STATIC_ITEMS.filter(i=>i.condition==="Like New").slice(0,3);
   const founderRef = useRef(null);
   const [founderVisible, setFounderVisible] = useState(false);
@@ -365,7 +368,7 @@ function HomePage({ setPage }) {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setFounderVisible(true); },
-      { threshold: 0.12 }
+      { threshold: 0.08 }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -382,67 +385,60 @@ function HomePage({ setPage }) {
       `}</style>
 
       {/* Hero */}
-      <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding:"0 64px 0", position:"relative", overflow:"hidden" }}>
-        {/* Faded D watermark */}
-        <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>
+      <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding: isMobile ? "0 24px 48px" : "0 64px 0", position:"relative", overflow:"hidden" }}>
+        {!isMobile && <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>}
         <div style={{ position:"relative", zIndex:1, maxWidth:1080, margin:"0 auto", width:"100%" }}>
-          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom:32, fontWeight:600 }}>Better clothes. Less effort.</p>
-          <h1 style={{ fontFamily:S.serif, fontSize:"clamp(56px, 8.5vw, 120px)", fontWeight:600, lineHeight:0.9, letterSpacing:"-3px", color:S.ink, marginBottom:48, maxWidth:800 }}>
+          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 10 : 11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom: isMobile ? 20 : 32, fontWeight:600 }}>Better clothes. Less effort.</p>
+          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? "clamp(52px,14vw,72px)" : "clamp(56px,8.5vw,120px)", fontWeight:600, lineHeight:0.92, letterSpacing:"-3px", color:S.ink, marginBottom: isMobile ? 28 : 48, maxWidth:800 }}>
             A smarter way<br/>
             <em style={{ fontStyle:"italic", color:"#7a6a58" }}>for men</em><br/>
             to dress.
           </h1>
-          <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, lineHeight:1.75, maxWidth:440, marginBottom:52 }}>
+          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 15 : 16, color:S.muted, lineHeight:1.75, maxWidth: isMobile ? "100%" : 440, marginBottom: isMobile ? 36 : 52 }}>
             A curated wardrobe subscription for college men. Wear the brands you actually want — pay only for what's in your Suitcase.
           </p>
-          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
-            <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"16px 40px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Shop Wardrobes</button>
-            <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"16px 40px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Shop Pieces</button>
+          <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", gap:12 }}>
+            <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"17px 40px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:54, width: isMobile ? "100%" : "auto" }}>Shop Wardrobes</button>
+            <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"17px 40px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:54, width: isMobile ? "100%" : "auto" }}>Shop Pieces</button>
           </div>
         </div>
-        {/* Scroll cue */}
-        <div style={{ position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-          <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase", color:S.tan }}>Scroll</p>
-          <div style={{ width:1, height:32, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
-        </div>
+        {!isMobile && (
+          <div style={{ position:"absolute", bottom:36, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+            <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase", color:S.tan }}>Scroll</p>
+            <div style={{ width:1, height:32, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
+          </div>
+        )}
       </section>
 
       {/* Founder Story */}
       <section
         ref={founderRef}
-        style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, padding:"88px 64px", opacity: founderVisible ? 1 : 0 }}
+        style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, padding: isMobile ? "52px 24px" : "88px 64px", opacity: founderVisible ? 1 : 0 }}
       >
         <div
           className={founderVisible ? "founder-animate" : ""}
-          style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns:"300px 1fr", gap:"64px", alignItems:"start" }}
+          style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns: isMobile ? "1fr" : "300px 1fr", gap: isMobile ? "32px" : "64px", alignItems:"start" }}
         >
-          {/* Photo — medium fixed-width rectangle */}
           <div style={{ flexShrink:0 }}>
-            <img
-              src="https://i.imgur.com/1y1EZRn.png"
-              alt="Ben Davenport"
-              style={{ width:"100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}
-            />
+            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" style={{ width: isMobile ? "140px" : "100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}/>
             <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, marginTop:14, letterSpacing:"0.04em" }}>Ben Davenport</p>
             <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted, marginTop:2 }}>Founder · Penn State</p>
           </div>
-          {/* Story text */}
           <div>
             <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:14, fontWeight:500 }}>Founder</p>
-            <h2 style={{ fontFamily:S.serif, fontSize:"clamp(32px,4vw,52px)", fontWeight:600, letterSpacing:"-1px", color:S.ink, marginBottom:40, lineHeight:1.05 }}>Why I Built This</h2>
-            <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+            <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 32 : "clamp(32px,4vw,52px)", fontWeight:600, letterSpacing:"-1px", color:S.ink, marginBottom:32, lineHeight:1.05 }}>Why I Built This</h2>
+            <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
               {[
                 "I'm Ben Davenport, a student at Penn State — and like most guys in college, I spent way too much money on clothes I didn't need, that didn't fit right, and that I had to haul back and forth every semester.",
                 "It started in high school when I learned about fast fashion and the damage it does — to the environment, to our wallets, to the way we actually think about style. I kept thinking: there has to be a better way.",
-                "When I got to college, I noticed something. Guys actually care about how they look. They want to dress well, show up with confidence, and stay current — but the whole system works against them. Impulse buys. Wrong sizes. Clothes you wear twice. Bags stuffed with stuff you forgot you even owned.",
-                "Davenport is my answer to all of it. A curated wardrobe, sent to you, personalized to your style. Wear it as long as you want. If something doesn't fit, send it back. If you love a piece, buy it outright. When you're ready for something new, swap your whole wardrobe with a few clicks.",
-                "Going on a trip? We'll build you a wardrobe for it. Starting an internship? We've got you. Just want to look good without thinking about it? That's exactly what this is for.",
+                "When I got to college, I noticed something. Guys actually care about how they look. They want to dress well, show up with confidence, and stay current — but the whole system works against them.",
+                "Davenport is my answer to all of it. A curated wardrobe, sent to you, personalized to your style. Wear it as long as you want. If something doesn't fit, send it back. If you love a piece, buy it outright.",
               ].map((text, i) => (
-                <p key={i} style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.9 }}>{text}</p>
+                <p key={i} style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 15, color:S.muted, lineHeight:1.9 }}>{text}</p>
               ))}
-              <p style={{ fontFamily:S.sans, fontSize:15, color:S.ink, lineHeight:1.9, fontWeight:500 }}>I built this because I needed it. And I think you do too.</p>
+              <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 15, color:S.ink, lineHeight:1.9, fontWeight:500 }}>I built this because I needed it. And I think you do too.</p>
             </div>
-            <p style={{ fontFamily:S.serif, fontSize:24, fontWeight:600, color:S.ink, marginTop:40, fontStyle:"italic" }}>— Ben</p>
+            <p style={{ fontFamily:S.serif, fontSize:24, fontWeight:600, color:S.ink, marginTop:32, fontStyle:"italic" }}>— Ben</p>
           </div>
         </div>
       </section>
@@ -460,33 +456,33 @@ function HomePage({ setPage }) {
         <style>{`@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-33.33%)}}`}</style>
       </section>
 
-      {/* How it works — moved up, box delivery story */}
-      <section style={{ padding:"88px 40px", background:S.cream }}>
+      {/* How it works */}
+      <section style={{ padding: isMobile ? "52px 20px" : "88px 40px", background:S.cream }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:16 }}>How It Works</p>
-          <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>Your wardrobe, delivered.</h2>
-          <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,marginBottom:64,maxWidth:520 }}>Pick your pieces from home. We pack them up and ship a Davenport box straight to your door. Wear them, love them, keep them — or swap for something new.</p>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:S.stone }}>
+          <h2 style={{ fontFamily:S.serif,fontSize: isMobile ? 32 : 44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:14 }}>Your wardrobe, delivered.</h2>
+          <p style={{ fontFamily:S.sans,fontSize: isMobile ? 14 : 16,color:S.muted,marginBottom: isMobile ? 36 : 64,maxWidth:520 }}>Pick your pieces from home. We pack them up and ship a Davenport box straight to your door.</p>
+          <div style={{ display:"grid",gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)",gap:1,background:S.stone }}>
             {[
-              { n:"01", emoji:"🧳", title:"Build your Suitcase", desc:"Browse the catalog and add the pieces you want — a few essentials or a full rotation. You're only charged for what you pick." },
-              { n:"02", emoji:"📦", title:"We pack your box",    desc:"Once you're ready, we pull every piece, inspect it, and ship a Davenport box right to your door. No trips to the store." },
-              { n:"03", emoji:"👕", title:"Wear it all month",   desc:"Dress better every day. Pieces are yours for the month. If something doesn't fit the vibe, swap it for something that does." },
-              { n:"04", emoji:"🔄", title:"Keep, swap, or own",  desc:"Love a piece? Buy it outright and it's yours forever. Done with it? Send it back and we'll refresh your box. Simple." },
+              { n:"01", emoji:"🧳", title:"Build your Suitcase", desc:"Browse and add the pieces you want. You're only charged for what you pick." },
+              { n:"02", emoji:"📦", title:"We pack your box",    desc:"We pull every piece, inspect it, and ship a Davenport box to your door." },
+              { n:"03", emoji:"👕", title:"Wear it all month",   desc:"Dress better every day. Swap anything that doesn't fit the vibe." },
+              { n:"04", emoji:"🔄", title:"Keep, swap, or own",  desc:"Love a piece? Buy it outright. Done? Send it back and refresh." },
             ].map(({n,emoji,title,desc})=>(
-              <div key={n} style={{ background:"#fff", padding:"36px 28px" }}>
-                <div style={{ fontSize:32, marginBottom:16 }}>{emoji}</div>
-                <div style={{ fontFamily:S.serif,fontSize:36,color:S.stone,fontWeight:700,lineHeight:1,marginBottom:16 }}>{n}</div>
-                <h3 style={{ fontFamily:S.serif,fontSize:20,fontWeight:600,color:S.ink,marginBottom:10 }}>{title}</h3>
-                <p style={{ fontFamily:S.sans,fontSize:13,color:S.muted,lineHeight:1.75 }}>{desc}</p>
+              <div key={n} style={{ background:"#fff", padding: isMobile ? "24px 18px" : "36px 28px" }}>
+                <div style={{ fontSize: isMobile ? 26 : 32, marginBottom:12 }}>{emoji}</div>
+                <div style={{ fontFamily:S.serif,fontSize: isMobile ? 28 : 36,color:S.stone,fontWeight:700,lineHeight:1,marginBottom:12 }}>{n}</div>
+                <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 16 : 20,fontWeight:600,color:S.ink,marginBottom:8 }}>{title}</h3>
+                <p style={{ fontFamily:S.sans,fontSize: isMobile ? 12 : 13,color:S.muted,lineHeight:1.75 }}>{desc}</p>
               </div>
             ))}
           </div>
-          <div style={{ marginTop:44, padding:"32px 40px", background:S.ink, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:20 }}>
+          <div style={{ marginTop:isMobile?20:44, padding: isMobile ? "24px 20px" : "32px 40px", background:S.ink, display:"flex", flexDirection: isMobile?"column":"row", justifyContent:"space-between", alignItems: isMobile?"stretch":"center", gap:16 }}>
             <div>
-              <p style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,color:S.cream,marginBottom:6 }}>A box built around you. Shipped to your door.</p>
-              <p style={{ fontFamily:S.sans,fontSize:13,color:"#6b7280" }}>Pick a couple pieces or a whole season's worth — it's your call.</p>
+              <p style={{ fontFamily:S.serif,fontSize: isMobile ? 18 : 22,fontWeight:600,color:S.cream,marginBottom:6 }}>A box built around you. Shipped to your door.</p>
+              <p style={{ fontFamily:S.sans,fontSize:13,color:"#6b7280" }}>Pick a couple pieces or a whole season's worth.</p>
             </div>
-            <button onClick={()=>setPage("browse")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px 36px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0 }}>
+            <button onClick={()=>setPage("browse")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"16px 36px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",flexShrink:0,minHeight:52 }}>
               Start Building
             </button>
           </div>
@@ -494,25 +490,25 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Four ways to shop */}
-      <section style={{ padding:"80px 40px", background:"#fff" }}>
+      <section style={{ padding: isMobile ? "52px 20px" : "80px 40px", background:"#fff" }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:16 }}>How You Want to Shop</p>
-          <h2 style={{ fontFamily:S.serif,fontSize:44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:10 }}>Four ways in. One wardrobe.</h2>
-          <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,marginBottom:56,maxWidth:520 }}>Most guys don't dress badly because they can't afford better. They dress badly because they don't know where to start. Davenport meets you wherever you are.</p>
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:1,background:S.stone }}>
+          <h2 style={{ fontFamily:S.serif,fontSize: isMobile ? 30 : 44,fontWeight:600,letterSpacing:"-1px",color:S.ink,marginBottom:10 }}>Four ways in. One wardrobe.</h2>
+          <p style={{ fontFamily:S.sans,fontSize: isMobile ? 14 : 16,color:S.muted,marginBottom: isMobile ? 32 : 56,maxWidth:520,lineHeight:1.7 }}>Davenport meets you wherever you are.</p>
+          <div style={{ display:"grid",gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)",gap:1,background:S.stone }}>
             {[
-              { page:"browse",    num:"01", title:"Shop by Piece",    desc:"Know what you want. Browse the full catalog, filter by garment type, occasion, or season, and build your Suitcase piece by piece.",    cta:"Browse Pieces",    bg:"#fff" },
-              { page:"wardrobes", num:"02", title:"Shop by Wardrobe", desc:"Want someone to just tell you what to wear? Pick a curated wardrobe built around a season and a vibe. Take the whole thing or pick what you love.", cta:"Browse Wardrobes", bg:S.cream },
-              { page:"wardrobes", num:"03", title:"Shop by Style",    desc:"Not sure where your style lives yet? Swipe through aesthetics and we'll match you with pieces and wardrobes that fit who you want to be.",   cta:"Find My Style",    bg:"#fff" },
-              { page:"community", num:"04", title:"Shop the Community",desc:"See how real Davenport members wear their pieces. Browse fits from guys at your school and shop directly from what you see.",              cta:"See the Community",bg:S.cream },
+              { page:"browse",    num:"01", title:"By Piece",    desc:"Browse the full catalog and build your Suitcase piece by piece.",  cta:"Browse",    bg:"#fff" },
+              { page:"wardrobes", num:"02", title:"By Wardrobe", desc:"Pick a curated wardrobe built around a season and a vibe.",         cta:"Wardrobes", bg:S.cream },
+              { page:"wardrobes", num:"03", title:"By Style",    desc:"Swipe through aesthetics and we'll match you with the right pieces.",cta:"Find Style",bg:"#fff" },
+              { page:"community", num:"04", title:"Community",   desc:"See how real members wear their pieces. Shop directly from fits.",   cta:"Community", bg:S.cream },
             ].map(({page,num,title,desc,cta,bg})=>(
-              <div key={num} style={{ background:bg,padding:"36px 28px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:320 }}>
+              <div key={num} style={{ background:bg,padding: isMobile ? "20px 16px" : "36px 28px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight: isMobile ? 200 : 320 }}>
                 <div>
-                  <div style={{ fontFamily:S.serif,fontSize:44,color:S.stone,fontWeight:700,lineHeight:1,marginBottom:20 }}>{num}</div>
-                  <h3 style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,color:S.ink,marginBottom:12 }}>{title}</h3>
-                  <p style={{ fontFamily:S.sans,fontSize:13,color:S.muted,lineHeight:1.75 }}>{desc}</p>
+                  <div style={{ fontFamily:S.serif,fontSize: isMobile ? 32 : 44,color:S.stone,fontWeight:700,lineHeight:1,marginBottom:12 }}>{num}</div>
+                  <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 17 : 22,fontWeight:600,color:S.ink,marginBottom:8 }}>{title}</h3>
+                  <p style={{ fontFamily:S.sans,fontSize: isMobile ? 11 : 13,color:S.muted,lineHeight:1.7 }}>{desc}</p>
                 </div>
-                <button onClick={()=>setPage(page)} style={{ marginTop:28,background:"none",border:`1px solid ${S.ink}`,cursor:"pointer",padding:"9px 0",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:S.ink,width:"100%" }}>
+                <button onClick={()=>setPage(page)} style={{ marginTop:16,background:"none",border:`1px solid ${S.ink}`,cursor:"pointer",padding: isMobile ? "10px 0" : "9px 0",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase",color:S.ink,width:"100%",minHeight:42 }}>
                   {cta}
                 </button>
               </div>
@@ -754,6 +750,7 @@ function InlineStyleQuiz({ onComplete }) {
 }
 
 function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
+  const isMobile = useMobile();
   const [seasonFilter, setSeasonFilter] = useState("All");
   const [quizDone, setQuizDone] = useState(false);
   const { isSignedIn } = useUser();
@@ -767,30 +764,27 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
   }
 
   function handleQuizComplete() {
-    if (isSignedIn) {
-      setQuizDone(true);
-    } else {
-      openSignIn();
-    }
+    if (isSignedIn) setQuizDone(true);
+    else openSignIn();
   }
 
   return (
     <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
-      <div style={{ padding:"52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
+      <div style={{ padding: isMobile ? "28px 16px 20px" : "52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Curated by Davenport</p>
-          <h1 style={{ fontFamily:S.serif, fontSize:48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:14 }}>Wardrobes.</h1>
-          <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520, marginBottom:32 }}>Each wardrobe is a full seasonal collection built around a vibe. Take the whole thing or browse the pieces and pick what you want.</p>
-          <div style={{ display:"flex", gap:6 }}>
+          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 36 : 48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:14 }}>Wardrobes.</h1>
+          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520, marginBottom:32 }}>Each wardrobe is a full seasonal collection built around a vibe. Take the whole thing or browse the pieces and pick what you want.</p>}
+          <div style={{ display:"flex", gap:6, marginTop: isMobile ? 16 : 0 }}>
             {seasons.map(s=>(
-              <button key={s} onClick={()=>setSeasonFilter(s)} style={{ background:seasonFilter===s?S.ink:"#fff", color:seasonFilter===s?S.cream:S.muted, border:`1px solid ${seasonFilter===s?S.ink:S.stone}`, padding:"6px 16px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase" }}>{s}</button>
+              <button key={s} onClick={()=>setSeasonFilter(s)} style={{ background:seasonFilter===s?S.ink:"#fff", color:seasonFilter===s?S.cream:S.muted, border:`1px solid ${seasonFilter===s?S.ink:S.stone}`, padding: isMobile ? "10px 14px" : "6px 16px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", minHeight:42 }}>{s}</button>
             ))}
           </div>
         </div>
       </div>
 
-      <div style={{ maxWidth:1080, margin:"0 auto", padding:"40px 40px 80px" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:28 }}>
+      <div style={{ maxWidth:1080, margin:"0 auto", padding: isMobile ? "20px 16px 40px" : "40px 40px 80px" }}>
+        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: isMobile ? 16 : 28 }}>
           {filtered.map(w=>{
             const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
             const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
@@ -987,6 +981,7 @@ function AuthGate() {
 }
 
 function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading }) {
+  const isMobile = useMobile();
   const { isSignedIn, isLoaded } = useUser();
   const [filters,setFilters]=useState({ occasion:"All",style:"All",season:"All",category:"All" });
   const [newOnly,setNewOnly]=useState(false);
@@ -1010,50 +1005,65 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading })
     .sort((a,b)=>sort==="price-asc"?getMonthlyPrice(a)-getMonthlyPrice(b):sort==="price-desc"?getMonthlyPrice(b)-getMonthlyPrice(a):condOrder.indexOf(a.condition)-condOrder.indexOf(b.condition));
 
   const pill=(value,active,onClick)=>(
-    <button key={value} onClick={onClick} style={{ background:active?S.ink:"#fff",color:active?S.cream:S.muted,border:`1px solid ${active?S.ink:S.stone}`,padding:"6px 14px",fontFamily:S.sans,fontSize:11,fontWeight:500,letterSpacing:"0.06em",cursor:"pointer",textTransform:"uppercase",transition:"all 0.15s" }}>
+    <button key={value} onClick={onClick} style={{ background:active?S.ink:"#fff",color:active?S.cream:S.muted,border:`1px solid ${active?S.ink:S.stone}`,padding: isMobile ? "8px 12px" : "6px 14px",fontFamily:S.sans,fontSize:11,fontWeight:500,letterSpacing:"0.06em",cursor:"pointer",textTransform:"uppercase",transition:"all 0.15s",flexShrink:0,minHeight:36 }}>
       {value}
     </button>
   );
 
-
   return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
-      <div style={{ padding:"52px 40px 36px",background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
-        <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>The Catalog</p>
-        <h1 style={{ fontFamily:S.serif,fontSize:48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom:32 }}>Every piece. Your price.</h1>
+      <div style={{ padding: isMobile ? "28px 16px 20px" : "52px 40px 36px",background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
+        <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:8 }}>The Catalog</p>
+        <h1 style={{ fontFamily:S.serif,fontSize: isMobile ? 32 : 48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom: isMobile ? 20 : 32 }}>Every piece. Your price.</h1>
 
-        {/* Shop Brand New styled as a filter pill, not a CTA */}
-        <div style={{ marginBottom:22,display:"flex",alignItems:"center",gap:10 }}>
-          <button
-            onClick={()=>setNewOnly(n=>!n)}
-            style={{ background:newOnly?S.ink:"#fff",color:newOnly?S.cream:S.ink,border:`1px solid ${newOnly?S.ink:S.stone}`,padding:"6px 16px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,transition:"all 0.15s" }}
-          >
-            {newOnly&&<span style={{ fontSize:10 }}>✓</span>}
-            Shop Brand New
+        <div style={{ marginBottom:16,display:"flex",alignItems:"center",gap:10 }}>
+          <button onClick={()=>setNewOnly(n=>!n)} style={{ background:newOnly?S.ink:"#fff",color:newOnly?S.cream:S.ink,border:`1px solid ${newOnly?S.ink:S.stone}`,padding:"8px 16px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",cursor:"pointer",textTransform:"uppercase",display:"flex",alignItems:"center",gap:8,minHeight:40 }}>
+            {newOnly&&<span style={{ fontSize:10 }}>✓</span>}Shop Brand New
           </button>
-          {newOnly&&<span style={{ fontFamily:S.sans,fontSize:11,color:S.muted,fontStyle:"italic" }}>Showing only never-worn pieces</span>}
+          {!isMobile&&newOnly&&<span style={{ fontFamily:S.sans,fontSize:11,color:S.muted,fontStyle:"italic" }}>Showing only never-worn pieces</span>}
         </div>
 
         {/* Filters */}
-        <div style={{ display:"flex",flexDirection:"column",gap:11 }}>
-          {[["Occasion",occasions,"occasion"],["Style",styles,"style"],["Season",seasons,"season"],["Category",categories,"category"]].map(([label,opts,key])=>(
-            <div key={key} style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" }}>
-              <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,width:68,flexShrink:0 }}>{label}</span>
-              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
-                {opts.map(o=>pill(o,filters[key]===o,()=>setFilters(f=>({...f,[key]:o}))))}
+        {isMobile ? (
+          /* Mobile: horizontal scrolling filter rows */
+          <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+            {[["Category",categories,"category"],["Occasion",occasions,"occasion"]].map(([label,opts,key])=>(
+              <div key={key}>
+                <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:6 }}>{label}</p>
+                <div style={{ display:"flex",gap:6,overflowX:"auto",paddingBottom:4 }}>
+                  {opts.map(o=>pill(o,filters[key]===o,()=>setFilters(f=>({...f,[key]:o}))))}
+                </div>
               </div>
+            ))}
+            <div style={{ display:"flex",gap:8,alignItems:"center" }}>
+              <select value={sort} onChange={e=>setSort(e.target.value)} style={{ fontFamily:S.sans,fontSize:12,border:`1px solid ${S.stone}`,padding:"8px 12px",background:"#fff",cursor:"pointer",color:S.ink,flex:1,minHeight:40 }}>
+                <option value="price-asc">Price: Low → High</option>
+                <option value="price-desc">Price: High → Low</option>
+                <option value="condition">Condition: Best First</option>
+              </select>
             </div>
-          ))}
-          <div style={{ display:"flex",alignItems:"center",gap:10 }}>
-            <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,width:68,flexShrink:0 }}>Sort</span>
-            <select value={sort} onChange={e=>setSort(e.target.value)} style={{ fontFamily:S.sans,fontSize:12,border:`1px solid ${S.stone}`,padding:"6px 12px",background:"#fff",cursor:"pointer",color:S.ink }}>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="condition">Condition: Best First</option>
-            </select>
           </div>
-        </div>
-        <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,marginTop:16 }}>{filtered.length} piece{filtered.length!==1?"s":""} found</p>
+        ) : (
+          <div style={{ display:"flex",flexDirection:"column",gap:11 }}>
+            {[["Occasion",occasions,"occasion"],["Style",styles,"style"],["Season",seasons,"season"],["Category",categories,"category"]].map(([label,opts,key])=>(
+              <div key={key} style={{ display:"flex",alignItems:"center",gap:10,flexWrap:"wrap" }}>
+                <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,width:68,flexShrink:0 }}>{label}</span>
+                <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                  {opts.map(o=>pill(o,filters[key]===o,()=>setFilters(f=>({...f,[key]:o}))))}
+                </div>
+              </div>
+            ))}
+            <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+              <span style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,width:68,flexShrink:0 }}>Sort</span>
+              <select value={sort} onChange={e=>setSort(e.target.value)} style={{ fontFamily:S.sans,fontSize:12,border:`1px solid ${S.stone}`,padding:"6px 12px",background:"#fff",cursor:"pointer",color:S.ink }}>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
+                <option value="condition">Condition: Best First</option>
+              </select>
+            </div>
+          </div>
+        )}
+        <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,marginTop:14 }}>{filtered.length} piece{filtered.length!==1?"s":""} found</p>
       </div>
 
       {loading ? (
@@ -1066,11 +1076,11 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading })
           <p style={{ fontFamily:S.sans,fontSize:14,color:S.muted,maxWidth:360,margin:"0 auto" }}>The catalog is being assembled. Check back soon.</p>
         </div>
       ) : (
-        <div style={{ padding:"36px 40px",display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(228px, 1fr))",gap:22 }}>
+        <div style={{ padding: isMobile ? "16px 12px" : "36px 40px",display:"grid",gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(auto-fill,minmax(228px,1fr))",gap: isMobile ? 10 : 22 }}>
           {filtered.length===0 ? (
             <p style={{ gridColumn:"1/-1",fontFamily:S.sans,fontSize:14,color:S.muted,padding:"40px 0",textAlign:"center" }}>No items match the current filters.</p>
           ) : filtered.map(item=>(
-            <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} onBuy={onBuy}/>
+            <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} onBuy={onBuy} isMobile={isMobile}/>
           ))}
         </div>
       )}
@@ -1078,33 +1088,33 @@ function BrowsePage({ setPage, addToSuitcase, suitcase, items, onBuy, loading })
   );
 }
 
-function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy }) {
+function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy, isMobile=false }) {
   const [hov,setHov]=useState(false);
   return (
     <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{ background:"#fff",border:`1px solid ${S.stone}`,transition:"transform 0.2s,box-shadow 0.2s",transform:hov?"translateY(-4px)":"none",boxShadow:hov?"0 16px 40px rgba(0,0,0,0.09)":"none" }}>
+      style={{ background:"#fff",border:`1px solid ${S.stone}`,transition:"transform 0.2s,box-shadow 0.2s",transform:hov&&!isMobile?"translateY(-4px)":"none",boxShadow:hov&&!isMobile?"0 16px 40px rgba(0,0,0,0.09)":"none" }}>
       <div onClick={()=>setPage(`item-${item.id}`)} style={{ cursor:"pointer" }}>
-        <div style={{ height:150,background:item.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:40 }}>
+        <div style={{ aspectRatio: isMobile ? "1" : "auto", height: isMobile ? "auto" : 150,background:item.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize: isMobile ? 44 : 40 }}>
           {item.emoji}
         </div>
-        <div style={{ padding:"15px 16px 10px" }}>
-          <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:3 }}>{item.brand} · {item.category}</p>
-          <h3 style={{ fontFamily:S.serif,fontSize:16,fontWeight:600,color:S.ink,marginBottom:6,lineHeight:1.2 }}>{item.name}</h3>
+        <div style={{ padding: isMobile ? "10px 10px 8px" : "15px 16px 10px" }}>
+          <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:2 }}>{item.brand}</p>
+          <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 13 : 16,fontWeight:600,color:S.ink,marginBottom: isMobile ? 4 : 6,lineHeight:1.2 }}>{item.name}</h3>
           <div>
-            <span style={{ fontFamily:S.serif,fontSize:21,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
-            <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:3 }}>Buy outright: ${getBuyPrice(item)}</p>
+            <span style={{ fontFamily:S.serif,fontSize: isMobile ? 17 : 21,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
+            {!isMobile && <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:3 }}>Buy outright: ${getBuyPrice(item)}</p>}
           </div>
         </div>
       </div>
-      <div style={{ padding:"0 16px 16px" }}>
-        <button onClick={()=>addToSuitcase(item)} style={{ width:"100%",background:inSuitcase?"#f0ede8":S.ink,color:inSuitcase?"#6b5e4e":S.cream,border:"none",cursor:inSuitcase?"default":"pointer",padding:"10px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:6 }}>
-          {inSuitcase?"✓ In Suitcase":"+ Add to Suitcase"}
+      <div style={{ padding: isMobile ? "0 10px 10px" : "0 16px 16px" }}>
+        <button onClick={()=>addToSuitcase(item)} style={{ width:"100%",background:inSuitcase?"#f0ede8":S.ink,color:inSuitcase?"#6b5e4e":S.cream,border:"none",cursor:inSuitcase?"default":"pointer",padding: isMobile ? "12px 6px" : "10px",fontFamily:S.sans,fontSize: isMobile ? 10 : 11,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom: isMobile ? 4 : 6,minHeight:42 }}>
+          {inSuitcase?"✓ Added":"+ Add"}
         </button>
-        <button
-          onClick={()=>item._dbId ? onBuy(item) : setPage(`item-${item.id}`)}
-          style={{ width:"100%",background:"transparent",color:item._dbId?S.ink:S.muted,border:`1px solid ${item._dbId?S.ink:S.stone}`,cursor:"pointer",padding:"7px",fontFamily:S.sans,fontSize:10,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase" }}>
-          Buy Outright ${getBuyPrice(item)}
-        </button>
+        {!isMobile && (
+          <button onClick={()=>item._dbId ? onBuy(item) : setPage(`item-${item.id}`)} style={{ width:"100%",background:"transparent",color:item._dbId?S.ink:S.muted,border:`1px solid ${item._dbId?S.ink:S.stone}`,cursor:"pointer",padding:"7px",fontFamily:S.sans,fontSize:10,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase" }}>
+            Buy Outright ${getBuyPrice(item)}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1551,11 +1561,12 @@ const POSTS = [
 ];
 
 function CommunityPage({ setPage }) {
+  const isMobile = useMobile();
   const [filter, setFilter] = useState("All");
   const [liked, setLiked] = useState({});
   const [showPost, setShowPost] = useState(false);
   const [caption, setCaption] = useState("");
-  const [postStatus, setPostStatus] = useState(null); // null | "submitting" | "done"
+  const [postStatus, setPostStatus] = useState(null);
   const { isSignedIn, user } = useUser();
   const { openSignIn } = useClerk();
 
@@ -1592,38 +1603,22 @@ function CommunityPage({ setPage }) {
   return (
     <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
       {/* Header */}
-      <div style={{ padding:"52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
+      <div style={{ padding: isMobile ? "20px 16px 16px" : "52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:20 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems: isMobile ? "center" : "flex-end", flexWrap:"wrap", gap:12 }}>
             <div>
-              <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>The Community</p>
-              <h1 style={{ fontFamily:S.serif, fontSize:48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:10 }}>Worn by real people.</h1>
-              <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, maxWidth:440 }}>See how Davenport pieces actually look on real guys, at real schools, in real life.</p>
+              {!isMobile && <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>The Community</p>}
+              <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 48, fontWeight:600, letterSpacing:"-1px", color:S.ink }}>{isMobile ? "Community" : "Worn by real people."}</h1>
             </div>
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:10 }}>
-              <div style={{ display:"flex", gap:10 }}>
-                <a href="https://instagram.com/davenportwardrobe" target="_blank" rel="noreferrer"
-                  style={{ display:"flex", alignItems:"center", gap:6, fontFamily:S.sans, fontSize:11, color:S.ink, textDecoration:"none", border:`1px solid ${S.stone}`, padding:"7px 14px" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
-                  @davenportwardrobe
-                </a>
-                <a href="https://tiktok.com/@davenportwardrobe" target="_blank" rel="noreferrer"
-                  style={{ display:"flex", alignItems:"center", gap:6, fontFamily:S.sans, fontSize:11, color:S.ink, textDecoration:"none", border:`1px solid ${S.stone}`, padding:"7px 14px" }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.76a4.85 4.85 0 01-1.01-.07z"/></svg>
-                  @davenportwardrobe
-                </a>
-              </div>
-              <button onClick={handleShareClick} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"10px 22px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase" }}>
-                + Share Your Look
-              </button>
-            </div>
+            <button onClick={handleShareClick} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding: isMobile ? "12px 20px" : "10px 22px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", minHeight:48, flexShrink:0 }}>
+              + Share
+            </button>
           </div>
-
           {/* School filter */}
-          <div style={{ display:"flex", gap:6, marginTop:28, flexWrap:"wrap" }}>
+          <div style={{ display:"flex", gap:6, marginTop:16, overflowX: isMobile ? "auto" : "visible", flexWrap: isMobile ? "nowrap" : "wrap", paddingBottom: isMobile ? 4 : 0 }}>
             {schools.map(s => (
               <button key={s} onClick={() => setFilter(s)}
-                style={{ background:filter===s?S.ink:"#fff", color:filter===s?S.cream:S.muted, border:`1px solid ${filter===s?S.ink:S.stone}`, padding:"5px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase" }}>
+                style={{ background:filter===s?S.ink:"#fff", color:filter===s?S.cream:S.muted, border:`1px solid ${filter===s?S.ink:S.stone}`, padding: isMobile ? "8px 14px" : "5px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", flexShrink:0, minHeight:38 }}>
                 {s}
               </button>
             ))}
@@ -1631,77 +1626,124 @@ function CommunityPage({ setPage }) {
         </div>
       </div>
 
-      {/* Masonry-style grid */}
-      <div style={{ maxWidth:1080, margin:"0 auto", padding:"40px 40px 80px" }}>
-        <div style={{ columns:"3 300px", columnGap:20 }}>
-          {filtered.map(post => (
-            <div key={post.id} style={{ breakInside:"avoid", marginBottom:20, background:"#fff", border:`1px solid ${S.stone}` }}>
-              {/* Visual */}
-              <div style={{ background:post.bg, height: post.aspect==="tall" ? 280 : 180, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
-                {/* Simulated photo feel */}
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.15) 100%)" }}/>
-                <div style={{ textAlign:"center", position:"relative", zIndex:1 }}>
-                  <div style={{ width:52, height:52, borderRadius:"50%", background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, margin:"0 auto 12px", border:"1px solid rgba(255,255,255,0.2)" }}>👤</div>
-                  <p style={{ fontFamily:S.sans, fontSize:11, color:"rgba(255,255,255,0.7)", letterSpacing:"0.06em" }}>@{post.user}</p>
-                </div>
-                {/* Video play indicator on some */}
-                {post.id % 3 === 0 && (
-                  <div style={{ position:"absolute", bottom:12, left:12, display:"flex", alignItems:"center", gap:5, background:"rgba(0,0,0,0.5)", padding:"4px 10px", borderRadius:2 }}>
-                    <div style={{ width:0, height:0, borderTop:"5px solid transparent", borderBottom:"5px solid transparent", borderLeft:"8px solid #fff" }}/>
-                    <span style={{ fontFamily:S.sans, fontSize:9, color:"#fff", letterSpacing:"0.06em" }}>VIDEO</span>
+      {/* Feed */}
+      <div style={{ maxWidth: isMobile ? "100%" : 1080, margin:"0 auto", padding: isMobile ? "0" : "40px 40px 80px" }}>
+        {isMobile ? (
+          /* Instagram-style feed: full-width cards */
+          <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+            {filtered.map(post => (
+              <div key={post.id} style={{ background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
+                {/* Post header */}
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                    <div style={{ width:36, height:36, borderRadius:"50%", background:post.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>👤</div>
+                    <div>
+                      <p style={{ fontFamily:S.sans, fontSize:13, fontWeight:600, color:S.ink }}>@{post.user}</p>
+                      <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted }}>{post.school}</p>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div style={{ padding:"16px 18px 14px" }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                  <div>
-                    <span style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink }}>@{post.user}</span>
-                    <span style={{ fontFamily:S.sans, fontSize:10, color:S.muted, marginLeft:8 }}>{post.school}</span>
-                  </div>
-                  <button onClick={() => toggleLike(post.id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", gap:5, color: liked[post.id] ? "#e11d48" : S.muted }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill={liked[post.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="2">
-                      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-                    </svg>
-                    <span style={{ fontFamily:S.sans, fontSize:11 }}>{liked[post.id] ? post.likes+1 : post.likes}</span>
-                  </button>
+                  <span style={{ fontFamily:S.sans, fontSize:10, fontWeight:600, color:S.tan, background:"#f0ebe3", border:`1px solid #ddd5c8`, borderRadius:20, padding:"3px 8px" }}>+5 pts</span>
                 </div>
-
-                <p style={{ fontFamily:S.sans, fontSize:13, color:S.ink, lineHeight:1.65, marginBottom:12 }}>{post.caption}</p>
-
-                {/* Tagged pieces */}
-                <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
-                  {post.items.map(item => (
-                    <button key={item} onClick={() => { const found = STATIC_ITEMS.find(i=>i.name===item); if(found) setPage(`item-${found.id}`); }}
-                      style={{ background:S.cream, border:`1px solid ${S.stone}`, padding:"3px 10px", fontFamily:S.sans, fontSize:10, color:S.tan, cursor:"pointer", letterSpacing:"0.04em" }}>
-                      {item}
+                {/* Photo area */}
+                <div style={{ background:post.bg, aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", width:"100%" }}>
+                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.2) 100%)" }}/>
+                  <div style={{ fontSize:72, position:"relative", zIndex:1 }}>👤</div>
+                  {post.id % 3 === 0 && (
+                    <div style={{ position:"absolute", bottom:12, left:12, display:"flex", alignItems:"center", gap:5, background:"rgba(0,0,0,0.5)", padding:"4px 10px", borderRadius:2, zIndex:2 }}>
+                      <div style={{ width:0, height:0, borderTop:"5px solid transparent", borderBottom:"5px solid transparent", borderLeft:"8px solid #fff" }}/>
+                      <span style={{ fontFamily:S.sans, fontSize:9, color:"#fff" }}>VIDEO</span>
+                    </div>
+                  )}
+                </div>
+                {/* Actions + caption */}
+                <div style={{ padding:"12px 16px 16px" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:10 }}>
+                    <button onClick={() => toggleLike(post.id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", gap:6, color: liked[post.id] ? "#e11d48" : S.muted, padding:0, minHeight:44, minWidth:44 }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill={liked[post.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="1.8">
+                        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                      </svg>
+                      <span style={{ fontFamily:S.sans, fontSize:13, fontWeight:500 }}>{liked[post.id] ? post.likes+1 : post.likes}</span>
                     </button>
-                  ))}
+                  </div>
+                  <p style={{ fontFamily:S.sans, fontSize:14, color:S.ink, lineHeight:1.6, marginBottom:10 }}>
+                    <strong>@{post.user}</strong> {post.caption}
+                  </p>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                    {post.items.map(item => (
+                      <button key={item} onClick={() => { const found = STATIC_ITEMS.find(i=>i.name===item); if(found) setPage(`item-${found.id}`); }}
+                        style={{ background:S.cream, border:`1px solid ${S.stone}`, padding:"4px 10px", fontFamily:S.sans, fontSize:11, color:S.tan, cursor:"pointer", letterSpacing:"0.04em", minHeight:32 }}>
+                        {item}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-
-                <p style={{ fontFamily:S.sans, fontSize:9, color:"#c4bdb5", letterSpacing:"0.06em", textTransform:"uppercase" }}>{post.wears}</p>
+              </div>
+            ))}
+            <div style={{ padding:"36px 20px", background:S.ink, textAlign:"center" }}>
+              <h2 style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:10 }}>Wearing Davenport?</h2>
+              <p style={{ fontFamily:S.sans, fontSize:13, color:"#6b7280", marginBottom:24 }}>Tag <strong style={{ color:S.gold }}>@davenportwardrobe</strong> to be featured.</p>
+              <button onClick={handleShareClick} style={{ background:S.gold, color:S.ink, border:"none", cursor:"pointer", padding:"16px 32px", fontFamily:S.sans, fontSize:13, fontWeight:700, letterSpacing:"0.08em", textTransform:"uppercase", width:"100%", minHeight:54 }}>
+                Share Your Look (+5 pts)
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Desktop: masonry grid */
+          <>
+            <div style={{ columns:"3 300px", columnGap:20 }}>
+              {filtered.map(post => (
+                <div key={post.id} style={{ breakInside:"avoid", marginBottom:20, background:"#fff", border:`1px solid ${S.stone}` }}>
+                  <div style={{ background:post.bg, height: post.aspect==="tall" ? 280 : 180, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.15) 100%)" }}/>
+                    <div style={{ textAlign:"center", position:"relative", zIndex:1 }}>
+                      <div style={{ width:52, height:52, borderRadius:"50%", background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, margin:"0 auto 12px", border:"1px solid rgba(255,255,255,0.2)" }}>👤</div>
+                      <p style={{ fontFamily:S.sans, fontSize:11, color:"rgba(255,255,255,0.7)", letterSpacing:"0.06em" }}>@{post.user}</p>
+                    </div>
+                    {post.id % 3 === 0 && (
+                      <div style={{ position:"absolute", bottom:12, left:12, display:"flex", alignItems:"center", gap:5, background:"rgba(0,0,0,0.5)", padding:"4px 10px", borderRadius:2 }}>
+                        <div style={{ width:0, height:0, borderTop:"5px solid transparent", borderBottom:"5px solid transparent", borderLeft:"8px solid #fff" }}/>
+                        <span style={{ fontFamily:S.sans, fontSize:9, color:"#fff", letterSpacing:"0.06em" }}>VIDEO</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding:"16px 18px 14px" }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                      <div>
+                        <span style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink }}>@{post.user}</span>
+                        <span style={{ fontFamily:S.sans, fontSize:10, color:S.muted, marginLeft:8 }}>{post.school}</span>
+                      </div>
+                      <button onClick={() => toggleLike(post.id)} style={{ background:"none", border:"none", cursor:"pointer", display:"flex", alignItems:"center", gap:5, color: liked[post.id] ? "#e11d48" : S.muted }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill={liked[post.id]?"currentColor":"none"} stroke="currentColor" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                        </svg>
+                        <span style={{ fontFamily:S.sans, fontSize:11 }}>{liked[post.id] ? post.likes+1 : post.likes}</span>
+                      </button>
+                    </div>
+                    <p style={{ fontFamily:S.sans, fontSize:13, color:S.ink, lineHeight:1.65, marginBottom:12 }}>{post.caption}</p>
+                    <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:10 }}>
+                      {post.items.map(item => (
+                        <button key={item} onClick={() => { const found = STATIC_ITEMS.find(i=>i.name===item); if(found) setPage(`item-${found.id}`); }}
+                          style={{ background:S.cream, border:`1px solid ${S.stone}`, padding:"3px 10px", fontFamily:S.sans, fontSize:10, color:S.tan, cursor:"pointer", letterSpacing:"0.04em" }}>
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontFamily:S.sans, fontSize:9, color:"#c4bdb5", letterSpacing:"0.06em", textTransform:"uppercase" }}>{post.wears}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop:20, padding:"44px", background:S.ink, textAlign:"center" }}>
+              <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:"#6b5e4e", marginBottom:16 }}>Share Your Look</p>
+              <h2 style={{ fontFamily:S.serif, fontSize:36, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:12 }}>Wearing Davenport?</h2>
+              <p style={{ fontFamily:S.sans, fontSize:14, color:"#6b7280", marginBottom:32, maxWidth:400, margin:"0 auto 32px" }}>Post on Instagram or TikTok and tag <strong style={{ color:S.gold }}>@davenportwardrobe</strong> to be featured.</p>
+              <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
+                <a href="https://instagram.com/davenportwardrobe" target="_blank" rel="noreferrer" style={{ background:"transparent", color:S.cream, border:`1px solid #374151`, padding:"12px 28px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", textDecoration:"none", display:"inline-block" }}>Instagram</a>
+                <a href="https://tiktok.com/@davenportwardrobe" target="_blank" rel="noreferrer" style={{ background:S.cream, color:S.ink, border:"none", padding:"12px 28px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", textDecoration:"none", display:"inline-block" }}>TikTok</a>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Upload CTA */}
-        <div style={{ marginTop:20, padding:"44px", background:S.ink, textAlign:"center" }}>
-          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:"#6b5e4e", marginBottom:16 }}>Share Your Look</p>
-          <h2 style={{ fontFamily:S.serif, fontSize:36, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:12 }}>Wearing Davenport?</h2>
-          <p style={{ fontFamily:S.sans, fontSize:14, color:"#6b7280", marginBottom:32, maxWidth:400, margin:"0 auto 32px" }}>Post a photo or video on Instagram or TikTok and tag <strong style={{ color:S.gold }}>@davenportwardrobe</strong> to be featured here.</p>
-          <div style={{ display:"flex", gap:14, justifyContent:"center", flexWrap:"wrap" }}>
-            <a href="https://instagram.com/davenportwardrobe" target="_blank" rel="noreferrer"
-              style={{ background:"transparent", color:S.cream, border:`1px solid #374151`, padding:"12px 28px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", textDecoration:"none", display:"inline-block" }}>
-              Instagram
-            </a>
-            <a href="https://tiktok.com/@davenportwardrobe" target="_blank" rel="noreferrer"
-              style={{ background:S.cream, color:S.ink, border:"none", padding:"12px 28px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", textDecoration:"none", display:"inline-block" }}>
-              TikTok
-            </a>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Share Your Look modal */}
@@ -1789,6 +1831,7 @@ function Footer({ setPage }) {
 
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
+  const isMobile = useMobile();
   const [page,setPage]=useState("home");
   const [suitcase,setSuitcase]=useState([]);
   const [styleProfile,setStyleProfile]=useState([]);
@@ -1843,10 +1886,17 @@ export default function App() {
 
   return (
     <>
-      <style>{FONTS}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#faf9f7;-webkit-font-smoothing:antialiased}button:focus,input:focus{outline:none}`}</style>
+      <style>{FONTS}{`
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        body{background:#faf9f7;-webkit-font-smoothing:antialiased}
+        button:focus,input:focus{outline:none}
+        html{font-size:16px}
+      `}</style>
       <Nav page={page} setPage={nav} suitcase={suitcase}/>
-      {render()}
-      <Footer setPage={nav}/>
+      <div style={{ paddingBottom: isMobile ? 64 : 0 }}>
+        {render()}
+        <Footer setPage={nav}/>
+      </div>
     </>
   );
 }
