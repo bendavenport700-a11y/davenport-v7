@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_EMAIL = "bendavenport700@gmail.com";
+const ADMIN_EMAILS = ["bendavenport700@gmail.com", "mileslasky@gmail.com"];
 
 const S = {
   serif: "'Cormorant Garamond', Georgia, serif",
@@ -31,7 +31,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (!user || user.primaryEmailAddress?.emailAddress !== ALLOWED_EMAIL) {
+    if (!user || !ADMIN_EMAILS.includes(user.primaryEmailAddress?.emailAddress)) {
       router.replace("/");
       return;
     }
@@ -88,7 +88,7 @@ export default function AdminPage() {
     );
   }
 
-  if (!user || user.primaryEmailAddress?.emailAddress !== ALLOWED_EMAIL) {
+  if (!user || !ADMIN_EMAILS.includes(user.primaryEmailAddress?.emailAddress)) {
     return null;
   }
 

@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const ADMIN_EMAIL = "bendavenport700@gmail.com";
+const ADMIN_EMAILS = ["bendavenport700@gmail.com", "mileslasky@gmail.com"];
 const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
 
 export default clerkMiddleware((auth, req) => {
@@ -15,28 +15,23 @@ export default clerkMiddleware((auth, req) => {
     sessionClaims?.email ?? "(not in claims)"
   );
 
-  // Email bypass: if Clerk session claims include the admin email, always allow.
-  // Note: email is only present in sessionClaims if you've added it to the JWT
-  // template in the Clerk dashboard (Sessions → Customize session token).
-  if (sessionClaims?.email === ADMIN_EMAIL) {
-    console.log("[admin middleware] email bypass granted");
-    return;
-  }
-
-  // If signed in, let through — the page component enforces the email gate.
-  if (userId) {
-    console.log("[admin middleware] signed-in user allowed through");
-    return;
-  }
-
   // Not signed in — redirect to Clerk sign-in.
-  console.log("[admin middleware] unauthenticated, redirecting to sign-in");
-  authState.protect();
-}, {
-  authorizedParties: [
-    "https://davenport.rentals",
-    "https://www.davenport.rentals",
-  ],
+  if (!userId) {
+    console.log("[admin middleware] unauthenticated, redirecting to sign-in");
+    authState.protect();
+    return;
+  }
+
+  // Email bypass via session claims (active only if email is added to the Clerk
+  // JWT template under Dashboard → Sessions → Customize session token).
+  if (sessionClaims?.email && ADMIN_EMAILS.includes(sessionClaims.email)) {
+    console.log("[admin middleware] email claim matches, allowing");
+    return;
+  }
+
+  // Signed in but email not in claims — let through to the page.
+  // The page component enforces the email allowlist as the authoritative gate.
+  console.log("[admin middleware] signed-in, deferring email check to page");
 });
 
 export const config = {
