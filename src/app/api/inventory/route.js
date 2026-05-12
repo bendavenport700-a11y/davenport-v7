@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { getDb } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const sql = getDb();
   try {
