@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SignInButton, UserButton, useUser, useClerk } from "@clerk/nextjs";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');`;
@@ -336,38 +336,47 @@ function MiniItemCard({ item, setPage }) {
 // ─── HOME ─────────────────────────────────────────────────────────────────────
 function HomePage({ setPage }) {
   const featured = STATIC_ITEMS.filter(i=>i.condition==="Like New").slice(0,3);
+  const founderRef = useRef(null);
+  const [founderVisible, setFounderVisible] = useState(false);
+
+  useEffect(() => {
+    const el = founderRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setFounderVisible(true); },
+      { threshold: 0.12 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(36px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .founder-animate { animation: fadeUp 0.75s cubic-bezier(0.22,1,0.36,1) both; }
+      `}</style>
+
       {/* Hero */}
       <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding:"0 64px 0", position:"relative", overflow:"hidden" }}>
-        {/* Subtle background texture — large faded D */}
+        {/* Faded D watermark */}
         <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>
         <div style={{ position:"relative", zIndex:1, maxWidth:1080, margin:"0 auto", width:"100%" }}>
-          {/* Eyebrow */}
           <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom:32, fontWeight:600 }}>Better clothes. Less effort.</p>
-          {/* Headline */}
           <h1 style={{ fontFamily:S.serif, fontSize:"clamp(56px, 8.5vw, 120px)", fontWeight:600, lineHeight:0.9, letterSpacing:"-3px", color:S.ink, marginBottom:48, maxWidth:800 }}>
             A smarter way<br/>
             <em style={{ fontStyle:"italic", color:"#7a6a58" }}>for men</em><br/>
             to dress.
           </h1>
-          {/* Sub-copy */}
           <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, lineHeight:1.75, maxWidth:440, marginBottom:52 }}>
             A curated wardrobe subscription for college men. Wear the brands you actually want — pay only for what's in your Suitcase.
           </p>
-          {/* CTAs */}
-          <div style={{ display:"flex", gap:14, flexWrap:"wrap", marginBottom:80 }}>
+          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
             <button onClick={()=>setPage("wardrobes")} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"16px 40px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Shop Wardrobes</button>
             <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"16px 40px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase" }}>Shop Pieces</button>
-          </div>
-          {/* Founder credit */}
-          <div style={{ display:"flex", alignItems:"center", gap:14 }}>
-            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", objectPosition:"center top", border:`2px solid ${S.stone}`, flexShrink:0 }} />
-            <div>
-              <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, letterSpacing:"0.04em" }}>Ben Davenport</p>
-              <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted }}>Founder · Penn State</p>
-            </div>
           </div>
         </div>
         {/* Scroll cue */}
@@ -378,12 +387,26 @@ function HomePage({ setPage }) {
       </section>
 
       {/* Founder Story */}
-      <section style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}` }}>
-        <div style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns:"2fr 3fr" }}>
-          <div style={{ position:"sticky", top:60, height:"calc(100vh - 60px)", overflow:"hidden", background:"#ede8e1", display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", display:"block" }} />
+      <section
+        ref={founderRef}
+        style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, padding:"88px 64px", opacity: founderVisible ? 1 : 0 }}
+      >
+        <div
+          className={founderVisible ? "founder-animate" : ""}
+          style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns:"300px 1fr", gap:"64px", alignItems:"start" }}
+        >
+          {/* Photo — medium fixed-width rectangle */}
+          <div style={{ flexShrink:0 }}>
+            <img
+              src="https://i.imgur.com/1y1EZRn.png"
+              alt="Ben Davenport"
+              style={{ width:"100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}
+            />
+            <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, marginTop:14, letterSpacing:"0.04em" }}>Ben Davenport</p>
+            <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted, marginTop:2 }}>Founder · Penn State</p>
           </div>
-          <div style={{ padding:"88px 72px" }}>
+          {/* Story text */}
+          <div>
             <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:14, fontWeight:500 }}>Founder</p>
             <h2 style={{ fontFamily:S.serif, fontSize:"clamp(32px,4vw,52px)", fontWeight:600, letterSpacing:"-1px", color:S.ink, marginBottom:40, lineHeight:1.05 }}>Why I Built This</h2>
             <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
