@@ -89,9 +89,9 @@ function dbItemToUi(row) {
     rentalCount: 0,
     color: "#e8e3dc",
     emoji: "👕",
-    occasion: null,
-    style: null,
-    season: null,
+    occasion: row.occasion || null,
+    style: row.style || null,
+    season: row.season || null,
     stock: row.stock || 1,
     image_url: row.image_url || null,
     wardrobe_id: row.wardrobe_id ?? null,
@@ -398,6 +398,8 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
   const [founderVisible, setFounderVisible] = useState(false);
   const [dbWardrobes, setDbWardrobes] = useState([]);
   const [recentPosts, setRecentPosts] = useState([]);
+  const [slideIdx, setSlideIdx] = useState(0);
+  const [slideFade, setSlideFade] = useState(true);
 
   useEffect(() => {
     const el = founderRef.current;
@@ -418,6 +420,32 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
   const newArrivals = items.slice(0, 4);
 
   const peekItems = newArrivals.filter(i => i.image_url).slice(0, 4);
+
+  const editorialSlides = (() => {
+    const itemSlides = items.filter(i => i.image_url).slice(0, 5).map(i => ({
+      id: `i-${i.id}`, url: i.image_url, label: i.name, sub: i.brand, onClick: () => setPage("browse"),
+    }));
+    const wardrobeSlides = dbWardrobes.filter(w => w.image_url).slice(0, 3).map(w => ({
+      id: `w-${w.id}`, url: w.image_url, label: w.name, sub: "View Wardrobe", onClick: () => setPage(`wardrobe-db-${w.id}`),
+    }));
+    const merged = [];
+    const maxLen = Math.max(itemSlides.length, wardrobeSlides.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (i < wardrobeSlides.length) merged.push(wardrobeSlides[i]);
+      if (i < itemSlides.length) merged.push(itemSlides[i]);
+    }
+    return merged;
+  })();
+
+  const editorialCount = editorialSlides.length;
+  useEffect(() => {
+    if (editorialCount <= 1) return;
+    const t = setInterval(() => {
+      setSlideFade(false);
+      setTimeout(() => { setSlideIdx(i => (i + 1) % editorialCount); setSlideFade(true); }, 500);
+    }, 3000);
+    return () => clearInterval(t);
+  }, [editorialCount]);
 
   return (
     <div>
@@ -440,21 +468,16 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
       `}</style>
 
       {/* Hero */}
-      <section style={{ minHeight:"calc(75vh - 60px)", display:"flex", flexDirection:"column", justifyContent:"center", background:"#faf9f7", padding: isMobile ? "32px 24px 36px" : "0 64px 0", position:"relative", overflow:"hidden" }}>
-        {/* Big D watermark — only when no peek items */}
-        {!isMobile && peekItems.length === 0 && (
-          <div style={{ position:"absolute", right:"-4%", top:"50%", transform:"translateY(-50%)", fontFamily:S.serif, fontSize:"clamp(320px,42vw,560px)", fontWeight:700, color:S.stone, lineHeight:1, userSelect:"none", pointerEvents:"none", opacity:0.35, letterSpacing:"-8px" }}>D</div>
-        )}
-
-        {/* Hero text — constrained left on desktop when peek is showing */}
-        <div style={{ position:"relative", zIndex:1, maxWidth: (!isMobile && peekItems.length > 0) ? 620 : 1080, margin:"0 auto", width:"100%" }}>
+      <section style={{ minHeight:"calc(75vh - 60px)", display:"flex", flexDirection: isMobile ? "column" : "row", background:"#faf9f7", position:"relative", overflow:"hidden" }}>
+        {/* Left: text content */}
+        <div style={{ flex: isMobile ? "none" : "0 0 58%", display:"flex", flexDirection:"column", justifyContent:"center", padding: isMobile ? "36px 24px 32px" : "0 56px 0 64px", position:"relative", zIndex:1 }}>
           <p style={{ fontFamily:S.sans, fontSize: isMobile ? 10 : 11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom: isMobile ? 16 : 28, fontWeight:600 }}>Better clothes. Less effort.</p>
-          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? "clamp(44px,12vw,64px)" : "clamp(52px,7.5vw,108px)", fontWeight:600, lineHeight:0.92, letterSpacing:"-3px", color:S.ink, marginBottom: isMobile ? 22 : 40, maxWidth:700 }}>
+          <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? "clamp(44px,12vw,64px)" : "clamp(48px,6.5vw,100px)", fontWeight:600, lineHeight:0.92, letterSpacing:"-3px", color:S.ink, marginBottom: isMobile ? 20 : 36, maxWidth:600 }}>
             A smarter way<br/>
             <em style={{ fontStyle:"italic", color:"#7a6a58" }}>for men</em><br/>
             to dress.
           </h1>
-          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 16, color:S.muted, lineHeight:1.75, maxWidth: isMobile ? "100%" : 400, marginBottom: isMobile ? 28 : 44 }}>
+          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 16, color:S.muted, lineHeight:1.75, maxWidth: isMobile ? "100%" : 380, marginBottom: isMobile ? 24 : 40 }}>
             A curated wardrobe subscription for college men. Wear the brands you actually want — pay only for what's in your Suitcase.
           </p>
           <div style={{ display:"flex", flexDirection: isMobile ? "column" : "row", gap:10 }}>
@@ -462,9 +485,9 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
             <button onClick={()=>setPage("browse")} style={{ background:"transparent", color:S.ink, border:`1px solid #b8afa4`, cursor:"pointer", padding:"15px 36px", fontFamily:S.sans, fontSize:13, fontWeight:600, letterSpacing:"0.12em", textTransform:"uppercase", minHeight:50, width: isMobile ? "100%" : "auto" }}>Shop Pieces</button>
           </div>
 
-          {/* Mobile peek strip — horizontal, below CTA buttons */}
+          {/* Mobile peek strip */}
           {isMobile && peekItems.length > 0 && (
-            <div style={{ display:"flex", gap:8, marginTop:28, marginLeft:-24, marginRight:-24, paddingLeft:24, overflowX:"hidden" }}>
+            <div style={{ display:"flex", gap:8, marginTop:24, marginLeft:-24, marginRight:-24, paddingLeft:24, overflowX:"hidden" }}>
               {peekItems.map((item, i) => (
                 <div key={item.id} className="peek-item-mob"
                   onClick={()=>setPage("browse")}
@@ -473,34 +496,52 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
                     onError={e=>e.currentTarget.parentElement.style.background="#e8e3dc"}/>
                 </div>
               ))}
-              {/* Partially-visible overflow hint */}
               <div style={{ flexShrink:0, width:50, height:110, background:"linear-gradient(to right, #f5f3f0, transparent)", pointerEvents:"none" }}/>
+            </div>
+          )}
+
+          {/* Scroll hint */}
+          {!isMobile && (
+            <div style={{ position:"absolute", bottom:20, left:64, display:"flex", alignItems:"center", gap:8 }}>
+              <div style={{ width:1, height:28, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
+              <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase", color:S.tan }}>Scroll</p>
             </div>
           )}
         </div>
 
-        {/* Desktop peek strip — right edge, vertical */}
-        {!isMobile && peekItems.length > 0 && (
-          <div style={{ position:"absolute", right:0, top:"50%", transform:"translateY(-50%)", display:"flex", flexDirection:"column", gap:6, zIndex:2 }}>
-            {peekItems.map((item, i) => (
-              <div key={item.id} className="peek-item"
-                onClick={()=>setPage("browse")}
-                style={{ width:148, height:162, background:"#f5f3f0", borderLeft:`1px solid ${S.stone}`, borderTop:`1px solid ${S.stone}`, borderBottom:`1px solid ${S.stone}`, cursor:"pointer", overflow:"hidden", animationDelay:`${i*0.1+0.2}s`, position:"relative" }}>
-                <img src={item.image_url} alt={item.name} style={{ width:"100%", height:"100%", objectFit:"contain", display:"block" }}
-                  onError={e=>{ e.currentTarget.style.display="none"; e.currentTarget.parentElement.style.background="#e8e3dc"; }}/>
-                {/* Fade-right edge to hint more content */}
-                <div style={{ position:"absolute", inset:0, background:"linear-gradient(to left, rgba(250,249,247,0.5) 0%, transparent 40%)", pointerEvents:"none" }}/>
-              </div>
-            ))}
-            <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, textAlign:"center", marginTop:4 }}>New In →</p>
-          </div>
-        )}
-
-        {/* Scroll hint */}
+        {/* Right: editorial slideshow — desktop only */}
         {!isMobile && (
-          <div style={{ position:"absolute", bottom:24, left:"50%", transform:"translateX(-50%)", display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-            <p style={{ fontFamily:S.sans, fontSize:9, letterSpacing:"0.18em", textTransform:"uppercase", color:S.tan }}>Scroll</p>
-            <div style={{ width:1, height:28, background:`linear-gradient(to bottom, ${S.tan}, transparent)` }}/>
+          <div style={{ flex:"0 0 42%", position:"relative", overflow:"hidden", background:"#f5f3f0" }}>
+            {editorialSlides.length > 0 ? (
+              <>
+                {editorialSlides.map((slide, i) => (
+                  <div key={slide.id}
+                    style={{ position:"absolute", inset:0, opacity: i === slideIdx && slideFade ? 1 : 0, transition:"opacity 0.8s ease", cursor:"pointer" }}
+                    onClick={slide.onClick}>
+                    <img src={slide.url} alt={slide.label}
+                      style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}
+                      onError={e=>{ e.currentTarget.style.display="none"; }}/>
+                    {/* Vignette + caption */}
+                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 50%)" }}/>
+                    <div style={{ position:"absolute", bottom:32, left:28, right:28 }}>
+                      <p style={{ fontFamily:S.sans, fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:"rgba(255,255,255,0.7)", marginBottom:5 }}>{slide.sub}</p>
+                      <p style={{ fontFamily:S.serif, fontSize:22, fontWeight:600, color:"#fff", lineHeight:1.2 }}>{slide.label}</p>
+                    </div>
+                    {/* Dot indicators */}
+                    <div style={{ position:"absolute", top:20, right:20, display:"flex", flexDirection:"column", gap:5 }}>
+                      {editorialSlides.map((_, di) => (
+                        <div key={di} style={{ width:4, height: di === slideIdx ? 20 : 4, background: di === slideIdx ? "#fff" : "rgba(255,255,255,0.4)", borderRadius:2, transition:"height 0.3s" }}/>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {/* Left fade bleed into text area */}
+                <div style={{ position:"absolute", left:0, top:0, bottom:0, width:60, background:"linear-gradient(to right, #faf9f7, transparent)", pointerEvents:"none", zIndex:5 }}/>
+              </>
+            ) : (
+              /* Placeholder pattern when no images yet */
+              <div style={{ width:"100%", height:"100%", background:`repeating-linear-gradient(45deg, ${S.stone} 0px, ${S.stone} 1px, transparent 1px, transparent 24px)`, opacity:0.5 }}/>
+            )}
           </div>
         )}
       </section>
@@ -983,46 +1024,60 @@ function DbWardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase, it
 }
 
 // ─── WARDROBES PAGE ───────────────────────────────────────────────────────────
-function InlineStyleQuiz({ onComplete }) {
-  const [index, setIndex] = useState(0);
-  const [liked, setLiked] = useState([]);
-  const [animDir, setAnimDir] = useState(null);
 
-  function swipe(dir) {
-    setAnimDir(dir);
-    setTimeout(() => {
-      const newLiked = dir === "right" ? [...liked, SWIPE_ITEMS[index].id] : liked;
-      if (index + 1 >= SWIPE_ITEMS.length) {
-        onComplete(newLiked);
-      } else {
-        setLiked(newLiked);
-        setIndex(i => i + 1);
-        setAnimDir(null);
-      }
-    }, 280);
+const QUIZ_STEPS = [
+  { key:"occasion", label:"What's your main occasion?",       options:["Campus","Going Out","Internship","Weekend","Travel"] },
+  { key:"style",    label:"What style speaks to you?",        options:["Preppy","Minimal","Business","Streetwear","Classic"] },
+  { key:"season",   label:"What season are you shopping for?",options:["Fall/Winter","Spring/Summer","All Season"] },
+  { key:"budget",   label:"Monthly budget?",                  options:["Under $25","$25–$50","$50–$100","$100+"] },
+  { key:"frequency",label:"How often do you want to refresh?",options:["Monthly","Every 2–3 months","Seasonally"] },
+];
+
+function StyleQuiz({ onComplete }) {
+  const isMobile = useMobile();
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [animating, setAnimating] = useState(false);
+
+  function pick(value) {
+    if (animating) return;
+    const q = QUIZ_STEPS[step];
+    const newAnswers = { ...answers, [q.key]: value };
+    if (step + 1 >= QUIZ_STEPS.length) {
+      onComplete(newAnswers);
+    } else {
+      setAnimating(true);
+      setAnswers(newAnswers);
+      setTimeout(() => { setStep(s => s + 1); setAnimating(false); }, 240);
+    }
   }
 
-  const current = SWIPE_ITEMS[index];
+  const q = QUIZ_STEPS[step];
+
   return (
-    <section style={{ background:S.ink, padding:"80px 40px" }}>
-      <div style={{ maxWidth:480, margin:"0 auto", textAlign:"center" }}>
+    <section style={{ background:S.ink, padding: isMobile ? "52px 20px 64px" : "80px 40px" }}>
+      <div style={{ maxWidth:540, margin:"0 auto" }}>
         <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:"#6b5e4e", marginBottom:12 }}>Style Discovery</p>
-        <h2 style={{ fontFamily:S.serif, fontSize:40, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:8 }}>What speaks to you?</h2>
-        <p style={{ fontFamily:S.sans, fontSize:14, color:"#6b7280", marginBottom:44 }}>{index + 1} of {SWIPE_ITEMS.length}</p>
-        <div style={{ background:"#fff", border:"1px solid #1f2937", padding:"44px 36px", textAlign:"center", transition:"transform 0.28s, opacity 0.28s", transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none", opacity:animDir?0:1 }}>
-          <div style={{ fontSize:56, marginBottom:20 }}>{current.emoji}</div>
-          <h3 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:8 }}>{current.label}</h3>
-          <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted }}>{current.desc}</p>
-        </div>
-        <div style={{ display:"flex", gap:24, justifyContent:"center", marginTop:36 }}>
-          <button onClick={()=>swipe("left")} style={{ width:56, height:56, borderRadius:"50%", background:"#1f2937", border:"1px solid #374151", cursor:"pointer", fontSize:20, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
-          <button onClick={()=>swipe("right")} style={{ width:56, height:56, borderRadius:"50%", background:S.gold, border:"none", cursor:"pointer", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>♥</button>
-        </div>
-        <div style={{ display:"flex", gap:5, justifyContent:"center", marginTop:28 }}>
-          {SWIPE_ITEMS.map((_,i) => (
-            <div key={i} style={{ width:24, height:3, background:i<=index?"#c4a882":"#1f2937", borderRadius:2, transition:"background 0.2s" }}/>
+        <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 32 : 40, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:8 }}>Find My Style</h2>
+        {/* Progress */}
+        <div style={{ display:"flex", gap:4, marginBottom:36, marginTop:4 }}>
+          {QUIZ_STEPS.map((_, i) => (
+            <div key={i} style={{ flex:1, height:3, background: i <= step ? S.gold : "#1f2937", borderRadius:2, transition:"background 0.3s" }}/>
           ))}
         </div>
+        {/* Question */}
+        <div style={{ opacity: animating ? 0 : 1, transition:"opacity 0.24s", marginBottom:28 }}>
+          <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 15, color:"#9ca3af", marginBottom:20 }}>{q.label}</p>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill,minmax(140px,1fr))", gap:10 }}>
+            {q.options.map(opt => (
+              <button key={opt} onClick={() => pick(opt)}
+                style={{ background: answers[q.key] === opt ? S.gold : "#111827", color: answers[q.key] === opt ? S.ink : S.cream, border:`1px solid ${answers[q.key] === opt ? S.gold : "#374151"}`, padding:"14px 10px", fontFamily:S.sans, fontSize:13, fontWeight:500, cursor:"pointer", letterSpacing:"0.02em", transition:"all 0.15s", textAlign:"center", minHeight:52 }}>
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p style={{ fontFamily:S.sans, fontSize:11, color:"#4b5563", textAlign:"center" }}>{step + 1} of {QUIZ_STEPS.length}</p>
       </div>
     </section>
   );
@@ -1031,27 +1086,45 @@ function InlineStyleQuiz({ onComplete }) {
 function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
   const isMobile = useMobile();
   const [quizDone, setQuizDone] = useState(false);
+  const [styleProfile, setStyleProfile] = useState(null);
   const [dbWardrobes, setDbWardrobes] = useState([]);
   const [loadingWardrobes, setLoadingWardrobes] = useState(true);
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
   const { openSignIn } = useClerk();
 
-  useEffect(()=>{
+  useEffect(() => {
     fetch("/api/wardrobes").then(r=>r.json()).then(d=>{
       setDbWardrobes(Array.isArray(d)?d:[]);
       setLoadingWardrobes(false);
     }).catch(()=>{ setLoadingWardrobes(false); });
-  },[]);
+  }, []);
+
+  useEffect(() => {
+    if (!isSignedIn || !user?.id) return;
+    fetch("/api/style-profile").then(r=>r.json()).then(d=>{
+      if (d.style_profile) { setStyleProfile(d.style_profile); setQuizDone(true); }
+    }).catch(()=>{});
+  }, [isSignedIn, user?.id]);
 
   function handleDbWardrobeClick(wardrobeId) {
     if (isSignedIn) setPage(`wardrobe-db-${wardrobeId}`);
     else openSignIn();
   }
 
-  function handleQuizComplete() {
-    if (isSignedIn) setQuizDone(true);
-    else openSignIn();
+  async function handleQuizComplete(answers) {
+    setStyleProfile(answers);
+    setQuizDone(true);
+    if (isSignedIn) {
+      try { await fetch("/api/style-profile", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ style_profile: answers }) }); }
+      catch {}
+    }
   }
+
+  // Personalized items/wardrobes based on style profile
+  const recommended = styleProfile ? items.filter(i =>
+    (!styleProfile.occasion || i.occasion === styleProfile.occasion) &&
+    (!styleProfile.style    || i.style    === styleProfile.style)
+  ).slice(0, 8) : [];
 
   return (
     <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
@@ -1080,20 +1153,43 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
         )}
       </div>
 
+      {/* Style Quiz / Results */}
       {!quizDone ? (
-        <InlineStyleQuiz onComplete={handleQuizComplete}/>
+        <StyleQuiz onComplete={handleQuizComplete}/>
       ) : (
-        <section style={{ background:S.cream, borderTop:`1px solid ${S.stone}`, padding:"72px 40px 80px" }}>
+        <section style={{ background:S.cream, borderTop:`1px solid ${S.stone}`, padding: isMobile ? "40px 16px 60px" : "72px 40px 80px" }}>
           <div style={{ maxWidth:1080, margin:"0 auto" }}>
+            {/* Style profile tags */}
+            {styleProfile && (
+              <div style={{ marginBottom:40 }}>
+                <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:12 }}>Your Style</p>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
+                  {Object.entries(styleProfile).map(([k, v]) => (
+                    <span key={k} style={{ fontFamily:S.sans, fontSize:12, fontWeight:500, background:"#fff", border:`1px solid ${S.stone}`, color:S.ink, padding:"6px 14px", letterSpacing:"0.04em" }}>{v}</span>
+                  ))}
+                </div>
+                <button onClick={()=>{ setQuizDone(false); setStyleProfile(null); }} style={{ fontFamily:S.sans, fontSize:11, color:S.muted, background:"none", border:"none", cursor:"pointer", textDecoration:"underline", padding:0 }}>
+                  Retake quiz
+                </button>
+              </div>
+            )}
             <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:12 }}>Your Style Matches</p>
-            <h2 style={{ fontFamily:S.serif, fontSize:44, fontWeight:600, color:S.ink, letterSpacing:"-1px", marginBottom:36 }}>We know your vibe.</h2>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:24 }}>
-              {WARDROBES.slice(0,3).map(w=>{
-                const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
-                const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
-                return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={(id)=>{ if(isSignedIn) setPage(`wardrobe-${id}`); else openSignIn(); }}/>;
-              })}
-            </div>
+            <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 44, fontWeight:600, color:S.ink, letterSpacing:"-1px", marginBottom:36 }}>We know your vibe.</h2>
+            {recommended.length > 0 ? (
+              <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(auto-fill,minmax(228px,1fr))", gap: isMobile ? 10 : 22 }}>
+                {recommended.map(item=>(
+                  <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} isMobile={isMobile}/>
+                ))}
+              </div>
+            ) : (
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:24 }}>
+                {WARDROBES.slice(0,3).map(w=>{
+                  const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
+                  const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
+                  return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={(id)=>{ if(isSignedIn) setPage(`wardrobe-${id}`); else openSignIn(); }}/>;
+                })}
+              </div>
+            )}
           </div>
         </section>
       )}

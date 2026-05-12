@@ -93,6 +93,13 @@ export async function GET() {
     await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS condition TEXT`;
     await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS wears TEXT`;
 
+    await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS occasion TEXT`;
+    await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS style TEXT`;
+    await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS season TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS style_profile JSONB`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS student_verified BOOLEAN DEFAULT false`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS edu_email TEXT`;
+
     return Response.json({ ok: true, message: "Tables created." });
   } catch (err) {
     return Response.json({ ok: false, error: err.message }, { status: 500 });

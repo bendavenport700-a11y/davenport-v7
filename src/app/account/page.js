@@ -49,6 +49,13 @@ export default function AccountPage() {
   const [referralCode, setReferralCode] = useState(null);
   const [copied, setCopied] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
+  const [styleProfile, setStyleProfile] = useState(null);
+  const [studentVerified, setStudentVerified] = useState(false);
+  const [eduEmail, setEduEmail] = useState("");
+  const [eduInput, setEduInput] = useState("");
+  const [eduSaving, setEduSaving] = useState(false);
+  const [eduError, setEduError] = useState("");
+  const [eduSuccess, setEduSuccess] = useState(false);
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -65,11 +72,26 @@ export default function AccountPage() {
       .then(r => r.json())
       .then(rows => setUserPosts(Array.isArray(rows) ? rows : []))
       .catch(() => {});
+    fetch("/api/style-profile").then(r=>r.json()).then(d=>{ if(d.style_profile) setStyleProfile(d.style_profile); }).catch(()=>{});
+    fetch("/api/student-verify").then(r=>r.json()).then(d=>{ setStudentVerified(d.student_verified ?? false); setEduEmail(d.edu_email ?? ""); }).catch(()=>{});
   }, [isSignedIn, user?.id]);
 
   const referralLink = referralCode
     ? `https://davenport.rentals/?ref=${referralCode}`
     : null;
+
+  async function handleStudentVerify(e) {
+    e.preventDefault();
+    if (!eduInput.endsWith(".edu")) { setEduError("Please enter a valid .edu email address."); return; }
+    setEduSaving(true); setEduError("");
+    try {
+      const res = await fetch("/api/student-verify", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ edu_email: eduInput }) });
+      const d = await res.json();
+      if (!res.ok) { setEduError(d.error ?? "Something went wrong."); return; }
+      setStudentVerified(true); setEduEmail(eduInput); setEduSuccess(true);
+    } catch { setEduError("Something went wrong."); }
+    finally { setEduSaving(false); }
+  }
 
   function copyLink() {
     if (!referralLink) return;
@@ -259,6 +281,51 @@ export default function AccountPage() {
             )}
           </div>
 
+          {/* My Style */}
+          {styleProfile && (
+            <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"20px 20px", marginTop:24 }}>
+              <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:6 }}>My Style</h3>
+              <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:18 }}>Your style profile from the quiz.</p>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
+                {Object.entries(styleProfile).map(([k, v]) => (
+                  <span key={k} style={{ fontFamily:S.sans, fontSize:12, fontWeight:500, background:S.cream, border:`1px solid ${S.stone}`, color:S.ink, padding:"6px 14px", letterSpacing:"0.04em" }}>{v}</span>
+                ))}
+              </div>
+              <a href="/" style={{ fontFamily:S.sans, fontSize:11, color:S.muted, textDecoration:"underline" }}>Retake quiz on Wardrobes page</a>
+            </div>
+          )}
+
+          {/* Student Discount */}
+          <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"20px 20px", marginTop:24 }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+              <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink }}>Student Discount</h3>
+              {studentVerified && (
+                <span style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, background:"#f0fdf4", color:"#16a34a", border:"1px solid #bbf7d0", padding:"4px 12px", letterSpacing:"0.06em", textTransform:"uppercase" }}>
+                  Student Member ✓
+                </span>
+              )}
+            </div>
+            {studentVerified ? (
+              <>
+                <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:8 }}>Verified with <strong style={{ color:S.ink }}>{eduEmail}</strong></p>
+                <p style={{ fontFamily:S.sans, fontSize:14, fontWeight:500, color:"#16a34a" }}>You qualify for 15% off your monthly rate.</p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:20, lineHeight:1.7 }}>Verify your student status with a .edu email to unlock 15% off your monthly rental rate.</p>
+                <form onSubmit={handleStudentVerify} style={{ display:"flex", gap:0, flexWrap:"wrap" }}>
+                  <input type="email" value={eduInput} onChange={e=>setEduInput(e.target.value)} placeholder="yourname@university.edu"
+                    style={{ flex:1, padding:"11px 16px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, background:S.cream, minWidth:200 }}/>
+                  <button type="submit" disabled={eduSaving} style={{ background:S.ink, color:S.cream, border:"none", cursor:eduSaving?"not-allowed":"pointer", padding:"11px 24px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", flexShrink:0, opacity:eduSaving?0.7:1 }}>
+                    {eduSaving ? "Verifying…" : "Verify"}
+                  </button>
+                </form>
+                {eduError && <p style={{ fontFamily:S.sans, fontSize:12, color:"#dc2626", marginTop:8 }}>{eduError}</p>}
+                {eduSuccess && <p style={{ fontFamily:S.sans, fontSize:12, color:"#16a34a", marginTop:8 }}>✓ Student status verified! You qualify for 15% off.</p>}
+              </>
+            )}
+          </div>
+
         </div>
       </div>
     );
@@ -397,6 +464,51 @@ export default function AccountPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* My Style */}
+        {styleProfile && (
+          <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px", marginTop:24 }}>
+            <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:6 }}>My Style</h3>
+            <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:18 }}>Your style profile from the quiz.</p>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:14 }}>
+              {Object.entries(styleProfile).map(([k, v]) => (
+                <span key={k} style={{ fontFamily:S.sans, fontSize:12, fontWeight:500, background:S.cream, border:`1px solid ${S.stone}`, color:S.ink, padding:"6px 14px", letterSpacing:"0.04em" }}>{v}</span>
+              ))}
+            </div>
+            <a href="/" style={{ fontFamily:S.sans, fontSize:11, color:S.muted, textDecoration:"underline" }}>Retake quiz on Wardrobes page</a>
+          </div>
+        )}
+
+        {/* Student Discount */}
+        <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px", marginTop:24 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+            <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink }}>Student Discount</h3>
+            {studentVerified && (
+              <span style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, background:"#f0fdf4", color:"#16a34a", border:"1px solid #bbf7d0", padding:"4px 12px", letterSpacing:"0.06em", textTransform:"uppercase" }}>
+                Student Member ✓
+              </span>
+            )}
+          </div>
+          {studentVerified ? (
+            <>
+              <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:8 }}>Verified with <strong style={{ color:S.ink }}>{eduEmail}</strong></p>
+              <p style={{ fontFamily:S.sans, fontSize:14, fontWeight:500, color:"#16a34a" }}>You qualify for 15% off your monthly rate.</p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:20, lineHeight:1.7 }}>Verify your student status with a .edu email to unlock 15% off your monthly rental rate.</p>
+              <form onSubmit={handleStudentVerify} style={{ display:"flex", gap:0, flexWrap:"wrap" }}>
+                <input type="email" value={eduInput} onChange={e=>setEduInput(e.target.value)} placeholder="yourname@university.edu"
+                  style={{ flex:1, padding:"11px 16px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, background:S.cream, minWidth:200 }}/>
+                <button type="submit" disabled={eduSaving} style={{ background:S.ink, color:S.cream, border:"none", cursor:eduSaving?"not-allowed":"pointer", padding:"11px 24px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", flexShrink:0, opacity:eduSaving?0.7:1 }}>
+                  {eduSaving ? "Verifying…" : "Verify"}
+                </button>
+              </form>
+              {eduError && <p style={{ fontFamily:S.sans, fontSize:12, color:"#dc2626", marginTop:8 }}>{eduError}</p>}
+              {eduSuccess && <p style={{ fontFamily:S.sans, fontSize:12, color:"#16a34a", marginTop:8 }}>✓ Student status verified! You qualify for 15% off.</p>}
+            </>
           )}
         </div>
       </div>

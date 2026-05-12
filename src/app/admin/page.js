@@ -21,10 +21,13 @@ const S = {
 const CATEGORIES = ["T-Shirt","Oxford Shirt","Henley","Crewneck","Hoodie","Quarter-Zip","Fleece","Jacket","Blazer","Chinos","Denim","Trousers","Shorts","Joggers","Sweater","Polo","Cardigan","Outerwear","Accessories"];
 const SIZES      = ["XS","S","M","L","XL","XXL","28","29","30","31","32","33","34","36","38","28x30","30x30","30x32","32x30","32x32","32x34","34x30","34x32","34x34"];
 const WEARS      = ["0-10 wears", "10-20 wears", "20-30 wears"];
+const OCCASIONS  = ["Campus","Going Out","Internship","Weekend","Travel"];
+const STYLES_LIST = ["Preppy","Minimal","Business","Streetwear","Classic"];
+const SEASONS    = ["Fall/Winter","Spring/Summer","All Season"];
 
-const EMPTY_ITEM     = { name: "", brand: "", category: "", size: "", wears: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
+const EMPTY_ITEM     = { name: "", brand: "", category: "", size: "", wears: "", occasion: "", style: "", season: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 const EMPTY_WARDROBE = { name: "", description: "", image_url: "" };
-const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", wears: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
+const EMPTY_EDIT     = { name: "", brand: "", category: "", size: "", wears: "", occasion: "", style: "", season: "", price: "", condition: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
 
 function Label({ children }) {
   return (
@@ -159,6 +162,9 @@ export default function AdminPage() {
       category:    item.category || "",
       size:        item.size || "",
       wears:       item.wears || "",
+      occasion:    item.occasion || "",
+      style:       item.style || "",
+      season:      item.season || "",
       price:       item.price ? (item.price / 100).toString() : "",
       condition:   item.condition || "",
       description: item.description || "",
@@ -190,6 +196,9 @@ export default function AdminPage() {
           category:    editForm.category || null,
           size:        editForm.size || null,
           wears:       editForm.wears || null,
+          occasion:    editForm.occasion || null,
+          style:       editForm.style || null,
+          season:      editForm.season || null,
           price:       Math.round(parseFloat(editForm.price) * 100),
           condition:   editForm.condition || null,
           description: editForm.description || null,
@@ -330,6 +339,19 @@ export default function AdminPage() {
                 </div>
 
                 <div>
+                  <Label>Occasion</Label>
+                  <Select value={itemForm.occasion} onChange={e => setItemForm(f => ({ ...f, occasion: e.target.value }))} options={OCCASIONS} placeholder="Select occasion…"/>
+                </div>
+                <div>
+                  <Label>Style</Label>
+                  <Select value={itemForm.style} onChange={e => setItemForm(f => ({ ...f, style: e.target.value }))} options={STYLES_LIST} placeholder="Select style…"/>
+                </div>
+                <div>
+                  <Label>Season</Label>
+                  <Select value={itemForm.season} onChange={e => setItemForm(f => ({ ...f, season: e.target.value }))} options={SEASONS} placeholder="Select season…"/>
+                </div>
+
+                <div>
                   <Label>Buy Price (USD) *</Label>
                   <Input type="number" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} placeholder="85"/>
                 </div>
@@ -431,6 +453,18 @@ export default function AdminPage() {
                             <div>
                               <Label>Wears</Label>
                               <Select value={editForm.wears} onChange={e => setEditForm(f => ({ ...f, wears: e.target.value }))} options={WEARS} placeholder="Select wears…"/>
+                            </div>
+                            <div>
+                              <Label>Occasion</Label>
+                              <Select value={editForm.occasion} onChange={e => setEditForm(f => ({ ...f, occasion: e.target.value }))} options={OCCASIONS} placeholder="Select occasion…"/>
+                            </div>
+                            <div>
+                              <Label>Style</Label>
+                              <Select value={editForm.style} onChange={e => setEditForm(f => ({ ...f, style: e.target.value }))} options={STYLES_LIST} placeholder="Select style…"/>
+                            </div>
+                            <div>
+                              <Label>Season</Label>
+                              <Select value={editForm.season} onChange={e => setEditForm(f => ({ ...f, season: e.target.value }))} options={SEASONS} placeholder="Select season…"/>
                             </div>
                             <div>
                               <Label>Condition</Label>
