@@ -281,8 +281,8 @@ function Nav({ page, setPage, suitcase }) {
     <>
       {/* Top bar */}
       <nav style={{ position:"fixed",top:0,left:0,right:0,zIndex:200,background:"rgba(250,249,247,0.97)",backdropFilter:"blur(16px)",borderBottom:"1px solid #ede8e1",display:"flex",alignItems:"center",justifyContent:"space-between",padding: isMobile ? "0 16px 0 20px" : "0 24px 0 32px",height:60 }}>
-        <button onClick={()=>go("home")} style={{ fontFamily:S.serif,fontSize: isMobile ? 22 : 26,fontWeight:700,letterSpacing:"-0.5px",background:"none",border:"none",cursor:"pointer",color:S.ink,display:"flex",alignItems:"center",gap:10 }}>
-          Davenport
+        <button onClick={()=>go("home")} style={{ background:"none",border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:0 }}>
+          <img src="https://i.postimg.cc/tCGwQRHF/66568947-4778-447C-A28D-9605166EB47B.png" alt="Davenport" style={{ height:36,width:"auto",display:"block" }}/>
           <span style={{ fontFamily:S.sans,fontSize:9,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,background:"#f0ebe3",border:`1px solid #ddd5c8`,borderRadius:20,padding:"3px 8px",lineHeight:1 }}>Beta</span>
         </button>
 
@@ -471,6 +471,7 @@ function HomePage({ setPage, items=[], loadingItems=false }) {
       <section style={{ minHeight:"calc(75vh - 60px)", display:"flex", flexDirection: isMobile ? "column" : "row", background:"#faf9f7", position:"relative", overflow:"hidden" }}>
         {/* Left: text content */}
         <div style={{ flex: isMobile ? "none" : "0 0 58%", display:"flex", flexDirection:"column", justifyContent:"center", padding: isMobile ? "36px 24px 32px" : "0 56px 0 64px", position:"relative", zIndex:1 }}>
+          <img src="https://i.postimg.cc/tCGwQRHF/66568947-4778-447C-A28D-9605166EB47B.png" alt="Davenport" style={{ height:80, width:"auto", display:"block", margin: isMobile ? "0 auto 24px" : "0 0 32px" }}/>
           <p style={{ fontFamily:S.sans, fontSize: isMobile ? 10 : 11, letterSpacing:"0.26em", textTransform:"uppercase", color:S.tan, marginBottom: isMobile ? 16 : 28, fontWeight:600 }}>Better clothes. Less effort.</p>
           <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? "clamp(44px,12vw,64px)" : "clamp(48px,6.5vw,100px)", fontWeight:600, lineHeight:0.92, letterSpacing:"-3px", color:S.ink, marginBottom: isMobile ? 20 : 36, maxWidth:600 }}>
             A smarter way<br/>
@@ -2300,7 +2301,7 @@ function Footer({ setPage }) {
     <footer style={{ background:S.ink,padding:"52px 40px 36px",borderTop:"1px solid #1a1a1a" }}>
       <div style={{ maxWidth:1080,margin:"0 auto",display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:32,marginBottom:40 }}>
         <div>
-          <div style={{ fontFamily:S.serif,fontSize:22,color:S.cream,marginBottom:8 }}>Davenport</div>
+          <img src="https://i.postimg.cc/tCGwQRHF/66568947-4778-447C-A28D-9605166EB47B.png" alt="Davenport" style={{ height:48,width:"auto",display:"block",marginBottom:8,filter:"brightness(0) invert(1)" }}/>
           <p style={{ fontFamily:S.sans,fontSize:12,color:"#6b7280",maxWidth:200,lineHeight:1.7,marginBottom:20 }}>Upgrade your presence. One piece at a time.</p>
           <div style={{ display:"flex",gap:14 }}>
             <a href="https://instagram.com/davenportwardrobe" target="_blank" rel="noreferrer"
@@ -2331,7 +2332,7 @@ function Footer({ setPage }) {
         </div>
       </div>
       <div style={{ borderTop:"1px solid #1f2937",paddingTop:20,display:"flex",justifyContent:"space-between" }}>
-        <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151" }}>© 2025 Davenport Wardrobe</p>
+        <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151" }}>© 2026 Davenport Wardrobe</p>
         <p style={{ fontFamily:S.sans,fontSize:11,color:"#374151" }}>Built for men who mean it.</p>
       </div>
     </footer>
