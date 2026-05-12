@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_EMAIL = "benjamindavenport700@gmail.com";
+const ALLOWED_EMAIL = "bendavenport700@gmail.com";
 
 const S = {
   serif: "'Cormorant Garamond', Georgia, serif",
