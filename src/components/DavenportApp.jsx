@@ -27,7 +27,7 @@ function getBuyPrice(item) {
   return Math.round(item.buyPrice * CONDITIONS[item.condition].multiplier);
 }
 function getMonthlyPrice(item) {
-  return Math.max(4, Math.round(item.buyPrice * CONDITIONS[item.condition].multiplier * 0.0834));
+  return Math.round(item.buyPrice * 0.0834 * 100) / 100;
 }
 function getWearRange(count) {
   if (count <= 5)  return `${count} wear${count !== 1 ? "s" : ""}`;
@@ -421,7 +421,7 @@ function HomePage({ setPage }) {
           style={{ maxWidth:1080, margin:"0 auto", display:"grid", gridTemplateColumns: isMobile ? "1fr" : "300px 1fr", gap: isMobile ? "32px" : "64px", alignItems:"start" }}
         >
           <div style={{ flexShrink:0 }}>
-            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" style={{ width: isMobile ? "140px" : "100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}/>
+            <img src="https://i.imgur.com/1y1EZRn.png" alt="Ben Davenport" referrerPolicy="no-referrer" crossOrigin="anonymous" style={{ width: isMobile ? "140px" : "100%", aspectRatio:"3/4", objectFit:"cover", objectPosition:"center top", display:"block" }}/>
             <p style={{ fontFamily:S.sans, fontSize:12, fontWeight:600, color:S.ink, marginTop:14, letterSpacing:"0.04em" }}>Ben Davenport</p>
             <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted, marginTop:2 }}>Founder · Penn State</p>
           </div>
@@ -712,18 +712,25 @@ function DbWardrobeCard({ wardrobe, itemCount, isMobile, onClick }) {
       onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      style={{ cursor:"pointer", background:"#fff", border:`1px solid ${hov ? S.tan : S.stone}`, padding: isMobile ? "20px 20px" : "28px 28px", transition:"border-color 0.2s, transform 0.2s, box-shadow 0.2s", transform: hov ? "translateY(-3px)" : "none", boxShadow: hov ? "0 12px 32px rgba(0,0,0,0.07)" : "none" }}
+      style={{ cursor:"pointer", background:"#fff", border:`1px solid ${hov ? S.tan : S.stone}`, overflow:"hidden", transition:"border-color 0.2s, transform 0.2s, box-shadow 0.2s", transform: hov ? "translateY(-3px)" : "none", boxShadow: hov ? "0 12px 32px rgba(0,0,0,0.07)" : "none" }}
     >
-      <p style={{ fontFamily:S.sans, fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, marginBottom:8 }}>
-        {itemCount} piece{itemCount !== 1 ? "s" : ""}
-      </p>
-      <h3 style={{ fontFamily:S.serif, fontSize: isMobile ? 22 : 26, fontWeight:600, color:S.ink, marginBottom:8 }}>{wardrobe.name}</h3>
-      {wardrobe.description && (
-        <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, lineHeight:1.65, marginBottom:14 }}>{wardrobe.description}</p>
+      {wardrobe.image_url ? (
+        <img src={wardrobe.image_url} alt={wardrobe.name} style={{ width:"100%", height:200, objectFit:"cover", display:"block" }}/>
+      ) : (
+        <div style={{ width:"100%", height:200, background:S.stone, display:"flex", alignItems:"center", justifyContent:"center", fontSize:48 }}>🗂️</div>
       )}
-      <p style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, color:S.tan, letterSpacing:"0.08em", textTransform:"uppercase" }}>
-        Shop {wardrobe.name} →
-      </p>
+      <div style={{ padding: isMobile ? "20px" : "24px 28px" }}>
+        <p style={{ fontFamily:S.sans, fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, marginBottom:8 }}>
+          {itemCount} piece{itemCount !== 1 ? "s" : ""}
+        </p>
+        <h3 style={{ fontFamily:S.serif, fontSize: isMobile ? 22 : 26, fontWeight:600, color:S.ink, marginBottom:8 }}>{wardrobe.name}</h3>
+        {wardrobe.description && (
+          <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, lineHeight:1.65, marginBottom:14 }}>{wardrobe.description}</p>
+        )}
+        <p style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, color:S.tan, letterSpacing:"0.08em", textTransform:"uppercase" }}>
+          Shop {wardrobe.name} →
+        </p>
+      </div>
     </div>
   );
 }
@@ -834,23 +841,18 @@ function InlineStyleQuiz({ onComplete }) {
 
 function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
   const isMobile = useMobile();
-  const [seasonFilter, setSeasonFilter] = useState("All");
   const [quizDone, setQuizDone] = useState(false);
   const [dbWardrobes, setDbWardrobes] = useState([]);
+  const [loadingWardrobes, setLoadingWardrobes] = useState(true);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
 
   useEffect(()=>{
-    fetch("/api/wardrobes").then(r=>r.json()).then(d=>setDbWardrobes(Array.isArray(d)?d:[])).catch(()=>{});
+    fetch("/api/wardrobes").then(r=>r.json()).then(d=>{
+      setDbWardrobes(Array.isArray(d)?d:[]);
+      setLoadingWardrobes(false);
+    }).catch(()=>{ setLoadingWardrobes(false); });
   },[]);
-
-  const seasons = ["All","Fall/Winter","Spring/Summer"];
-  const filtered = seasonFilter==="All" ? WARDROBES : WARDROBES.filter(w=>w.season===seasonFilter);
-
-  function handleCardClick(wardrobeId) {
-    if (isSignedIn) setPage(`wardrobe-${wardrobeId}`);
-    else openSignIn();
-  }
 
   function handleDbWardrobeClick(wardrobeId) {
     if (isSignedIn) setPage(`wardrobe-db-${wardrobeId}`);
@@ -868,38 +870,23 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
         <div style={{ maxWidth:1080, margin:"0 auto" }}>
           <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Curated by Davenport</p>
           <h1 style={{ fontFamily:S.serif, fontSize: isMobile ? 36 : 48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:14 }}>Wardrobes.</h1>
-          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520, marginBottom:32 }}>Each wardrobe is a full seasonal collection built around a vibe. Take the whole thing or browse the pieces and pick what you want.</p>}
-          <div style={{ display:"flex", gap:6, marginTop: isMobile ? 16 : 0 }}>
-            {seasons.map(s=>(
-              <button key={s} onClick={()=>setSeasonFilter(s)} style={{ background:seasonFilter===s?S.ink:"#fff", color:seasonFilter===s?S.cream:S.muted, border:`1px solid ${seasonFilter===s?S.ink:S.stone}`, padding: isMobile ? "10px 14px" : "6px 16px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", minHeight:42 }}>{s}</button>
-            ))}
-          </div>
+          {!isMobile && <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520 }}>Each wardrobe is a full collection built around a vibe. Browse the pieces and pick what you want.</p>}
         </div>
       </div>
 
       <div style={{ maxWidth:1080, margin:"0 auto", padding: isMobile ? "20px 16px 40px" : "40px 40px 80px" }}>
-        {/* Static curated wardrobes */}
-        <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: isMobile ? 16 : 28 }}>
-          {filtered.map(w=>{
-            const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
-            const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
-            return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={handleCardClick}/>;
-          })}
-        </div>
-
-        {/* DB wardrobes — real inventory collections */}
-        {dbWardrobes.length > 0 && (
-          <div style={{ marginTop: isMobile ? 32 : 48 }}>
-            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Shop by Collection</p>
-            <h2 style={{ fontFamily:S.serif, fontSize: isMobile ? 28 : 36, fontWeight:600, letterSpacing:"-0.5px", color:S.ink, marginBottom: isMobile ? 16 : 28 }}>Real inventory, curated wardrobes.</h2>
-            <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: isMobile ? 12 : 20 }}>
-              {dbWardrobes.map(w => {
-                const count = items.filter(i => i.wardrobe_id === w.id).length;
-                return (
-                  <DbWardrobeCard key={w.id} wardrobe={w} itemCount={count} isMobile={isMobile} onClick={()=>handleDbWardrobeClick(w.id)}/>
-                );
-              })}
-            </div>
+        {loadingWardrobes ? (
+          <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, fontStyle:"italic" }}>Loading wardrobes…</p>
+        ) : dbWardrobes.length === 0 ? (
+          <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, fontStyle:"italic" }}>No wardrobes yet.</p>
+        ) : (
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: isMobile ? 16 : 28 }}>
+            {dbWardrobes.map(w => {
+              const count = items.filter(i => i.wardrobe_id === w.id).length;
+              return (
+                <DbWardrobeCard key={w.id} wardrobe={w} itemCount={count} isMobile={isMobile} onClick={()=>handleDbWardrobeClick(w.id)}/>
+              );
+            })}
           </div>
         )}
       </div>
@@ -915,7 +902,7 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
               {WARDROBES.slice(0,3).map(w=>{
                 const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
                 const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
-                return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={handleCardClick}/>;
+                return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={(id)=>{ if(isSignedIn) setPage(`wardrobe-${id}`); else openSignIn(); }}/>;
               })}
             </div>
           </div>
@@ -954,7 +941,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
             <p style={{ fontFamily:S.sans,fontSize:16,color:"rgba(255,255,255,0.65)",lineHeight:1.75,maxWidth:400,marginBottom:32 }}>{wardrobe.description}</p>
             <div style={{ display:"flex",gap:12,flexWrap:"wrap" }}>
               <button onClick={()=>{ pieces.forEach(p=>addToSuitcase(p)); }} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px 32px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase" }}>
-                {allInSuitcase ? "✓ All in Suitcase" : `Add Full Wardrobe $${monthlySum}/mo`}
+                {allInSuitcase ? "✓ All in Suitcase" : `Add Full Wardrobe $${(Math.round(monthlySum*100)/100).toFixed(2)}/mo`}
               </button>
               <button onClick={()=>setView(v=>v==="pieces"?"wardrobe":"pieces")} style={{ background:"transparent",color:"#fff",border:"1px solid rgba(255,255,255,0.3)",cursor:"pointer",padding:"14px 32px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase" }}>
                 Browse Pieces
@@ -976,7 +963,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
           <div style={{ display:"flex",gap:40,alignItems:"center" }}>
             <div>
               <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:3 }}>{pieces.length} Pieces</p>
-              <span style={{ fontFamily:S.serif,fontSize:28,fontWeight:700,color:S.ink }}>${monthlySum}<span style={{ fontFamily:S.sans,fontSize:11,color:S.muted }}>/mo</span></span>
+              <span style={{ fontFamily:S.serif,fontSize:28,fontWeight:700,color:S.ink }}>${(Math.round(monthlySum*100)/100).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:11,color:S.muted }}>/mo</span></span>
             </div>
             <div style={{ width:1,height:40,background:S.stone }}/>
             <div>
@@ -1024,7 +1011,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
             <div style={{ background:S.ink,padding:"32px 36px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:20 }}>
               <div>
                 <p style={{ fontFamily:S.sans,fontSize:11,color:"#6b7280",marginBottom:4 }}>Take the whole wardrobe</p>
-                <span style={{ fontFamily:S.serif,fontSize:32,fontWeight:700,color:S.cream }}>${monthlySum}<span style={{ fontFamily:S.sans,fontSize:12,color:"#6b7280" }}>/mo</span></span>
+                <span style={{ fontFamily:S.serif,fontSize:32,fontWeight:700,color:S.cream }}>${(Math.round(monthlySum*100)/100).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:12,color:"#6b7280" }}>/mo</span></span>
               </div>
               <button onClick={()=>pieces.forEach(p=>addToSuitcase(p))} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px 36px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
                 {allInSuitcase ? "✓ All in Suitcase" : "Add Full Wardrobe"}
@@ -1061,7 +1048,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
                       <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:6 }}>{w.season}</p>
                       <h3 style={{ fontFamily:S.serif,fontSize:22,fontWeight:600,color:S.ink,marginBottom:6 }}>{w.name}</h3>
                       <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,marginBottom:10 }}>{w.tagline}</p>
-                      <span style={{ fontFamily:S.serif,fontSize:18,fontWeight:700,color:S.ink }}>${Math.round(wSum)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
+                      <span style={{ fontFamily:S.serif,fontSize:18,fontWeight:700,color:S.ink }}>${(Math.round(wSum*100)/100).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
                     </div>
                   </div>
                 );
@@ -1370,7 +1357,7 @@ function QuizPage({ setPage, setStyleProfile }) {
                           {pieces.map(p=><div key={p.id} style={{ background:p.color,height:60,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22 }}>{p.emoji}</div>)}
                         </div>
                         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                          <span style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${total}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
+                          <span style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${(Math.round(total*100)/100).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
                           <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"8px 18px",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase" }}>Shop Outfit</button>
                         </div>
                       </div>
@@ -1410,7 +1397,7 @@ function QuizPage({ setPage, setStyleProfile }) {
                         <h3 style={{ fontFamily:S.serif,fontSize:24,fontWeight:600,color:S.ink,marginBottom:6 }}>{w.name}</h3>
                         <p style={{ fontFamily:S.sans,fontSize:12,color:S.muted,lineHeight:1.7,marginBottom:16 }}>{w.tagline}</p>
                         <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14 }}>
-                          <span style={{ fontFamily:S.serif,fontSize:22,fontWeight:700,color:S.ink }}>${wSum}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
+                          <span style={{ fontFamily:S.serif,fontSize:22,fontWeight:700,color:S.ink }}>${(Math.round(wSum*100)/100).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
                         </div>
                         <button onClick={()=>setPage(`wardrobe-${w.id}`)} style={{ width:"100%",background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"10px",fontFamily:S.sans,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase" }}>
                           View Wardrobe

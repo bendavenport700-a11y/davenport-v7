@@ -249,7 +249,7 @@ export default function AdminPage() {
                   <div>
                     <Label>Rent Preview</Label>
                     <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted, padding: "10px 14px", background: "#f9fafb", border: `1px solid ${S.stone}`, borderRadius: 6 }}>
-                      ${Math.round(parseFloat(itemForm.price) * 0.0834)}/mo
+                      ${(Math.round(parseFloat(itemForm.price) * 0.0834 * 100) / 100).toFixed(2)}/mo
                     </p>
                   </div>
                 ) : <div/>}
