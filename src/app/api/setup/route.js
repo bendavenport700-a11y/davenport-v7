@@ -88,6 +88,7 @@ export async function GET() {
     `;
 
     await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS wardrobe_id INTEGER REFERENCES wardrobes(id)`;
+    await sql`ALTER TABLE wardrobes ADD COLUMN IF NOT EXISTS image_url TEXT`;
 
     return Response.json({ ok: true, message: "Tables created." });
   } catch (err) {

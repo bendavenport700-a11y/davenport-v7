@@ -18,24 +18,57 @@ const S = {
   muted: "#6b7280",
 };
 
-const EMPTY_ITEM = { name: "", brand: "", category: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
-const EMPTY_WARDROBE = { name: "", description: "" };
+const EMPTY_ITEM     = { name: "", brand: "", category: "", price: "", description: "", image_url: "", stock: "1", wardrobe_id: "" };
+const EMPTY_WARDROBE = { name: "", description: "", image_url: "" };
+
+function Label({ children }) {
+  return (
+    <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+      {children}
+    </label>
+  );
+}
+
+function Input({ value, onChange, type = "text", placeholder = "", autoFocus = false }) {
+  return (
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      autoFocus={autoFocus}
+      style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%" }}
+    />
+  );
+}
 
 export default function AdminPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
 
+  const [tab, setTab] = useState("inventory");
   const [items, setItems] = useState([]);
   const [wardrobes, setWardrobes] = useState([]);
-  const [form, setForm] = useState(EMPTY_ITEM);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(null);
-  const [error, setError] = useState("");
 
-  const [wardrobeModal, setWardrobeModal] = useState(false);
-  const [wardrobeForm, setWardrobeForm] = useState(EMPTY_WARDROBE);
-  const [wardrobeSaving, setWardrobeSaving] = useState(false);
-  const [wardrobeError, setWardrobeError] = useState("");
+  // Inventory tab state
+  const [itemForm, setItemForm] = useState(EMPTY_ITEM);
+  const [itemSaving, setItemSaving] = useState(false);
+  const [itemDeleting, setItemDeleting] = useState(null);
+  const [itemError, setItemError] = useState("");
+
+  // Wardrobes tab state
+  const [wForm, setWForm] = useState(EMPTY_WARDROBE);
+  const [wSaving, setWSaving] = useState(false);
+  const [wError, setWError] = useState("");
+  const [wDeleting, setWDeleting] = useState(null);
+  const [expandedWardrobe, setExpandedWardrobe] = useState(null);
+  const [removingItem, setRemovingItem] = useState(null);
+
+  // New-wardrobe modal (opened from inventory tab dropdown)
+  const [modal, setModal] = useState(false);
+  const [modalForm, setModalForm] = useState(EMPTY_WARDROBE);
+  const [modalSaving, setModalSaving] = useState(false);
+  const [modalError, setModalError] = useState("");
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -55,71 +88,91 @@ export default function AdminPage() {
     setWardrobes(Array.isArray(ward) ? ward : []);
   }
 
-  async function handleSubmit(e) {
+  // ── Inventory actions ───────────────────────────────────────────────────────
+
+  async function handleAddItem(e) {
     e.preventDefault();
-    setError("");
-    if (!form.name || !form.price) { setError("Name and price are required."); return; }
-    if (!form.wardrobe_id) { setError("Please select a wardrobe."); return; }
-    setSaving(true);
+    setItemError("");
+    if (!itemForm.name || !itemForm.price) { setItemError("Name and price are required."); return; }
+    if (!itemForm.wardrobe_id) { setItemError("Please select a wardrobe."); return; }
+    setItemSaving(true);
     try {
       const res = await fetch("/api/inventory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          price: Math.round(parseFloat(form.price) * 100),
-          stock: parseInt(form.stock) || 1,
-          wardrobe_id: parseInt(form.wardrobe_id),
-        }),
+        body: JSON.stringify({ ...itemForm, price: Math.round(parseFloat(itemForm.price) * 100), stock: parseInt(itemForm.stock) || 1, wardrobe_id: parseInt(itemForm.wardrobe_id) }),
       });
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? "Failed to add item."); return; }
-      setForm(EMPTY_ITEM);
+      if (!res.ok) { const d = await res.json(); setItemError(d.error ?? "Failed to add item."); return; }
+      setItemForm(EMPTY_ITEM);
       await loadAll();
-    } catch {
-      setError("Something went wrong.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setItemError("Something went wrong."); }
+    finally { setItemSaving(false); }
   }
 
-  async function handleDelete(id) {
+  async function handleDeleteItem(id) {
     if (!confirm("Delete this item?")) return;
-    setDeleting(id);
+    setItemDeleting(id);
     try {
-      await fetch("/api/inventory", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      });
+      await fetch("/api/inventory", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
       await loadAll();
-    } finally {
-      setDeleting(null);
-    }
+    } finally { setItemDeleting(null); }
   }
 
-  async function handleWardrobeSubmit(e) {
-    e.preventDefault();
-    setWardrobeError("");
-    if (!wardrobeForm.name.trim()) { setWardrobeError("Name is required."); return; }
-    setWardrobeSaving(true);
+  async function handleRemoveFromWardrobe(itemId) {
+    setRemovingItem(itemId);
     try {
-      const res = await fetch("/api/wardrobes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(wardrobeForm),
-      });
-      if (!res.ok) { const d = await res.json(); setWardrobeError(d.error ?? "Failed to create wardrobe."); return; }
-      const created = await res.json();
-      setWardrobes(w => [...w, created].sort((a, b) => a.name.localeCompare(b.name)));
-      setForm(f => ({ ...f, wardrobe_id: String(created.id) }));
-      setWardrobeModal(false);
-      setWardrobeForm(EMPTY_WARDROBE);
-    } catch {
-      setWardrobeError("Something went wrong.");
-    } finally {
-      setWardrobeSaving(false);
-    }
+      await fetch("/api/inventory", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: itemId, wardrobe_id: null }) });
+      await loadAll();
+    } finally { setRemovingItem(null); }
   }
+
+  // ── Wardrobe actions ────────────────────────────────────────────────────────
+
+  async function postWardrobe(data) {
+    const res = await fetch("/api/wardrobes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed to create wardrobe."); }
+    return res.json();
+  }
+
+  async function handleCreateWardrobe(e) {
+    e.preventDefault();
+    setWError("");
+    if (!wForm.name.trim()) { setWError("Name is required."); return; }
+    setWSaving(true);
+    try {
+      await postWardrobe(wForm);
+      setWForm(EMPTY_WARDROBE);
+      await loadAll();
+    } catch (err) { setWError(err.message); }
+    finally { setWSaving(false); }
+  }
+
+  async function handleDeleteWardrobe(id) {
+    if (!confirm("Delete this wardrobe? Items will be unassigned but not deleted.")) return;
+    setWDeleting(id);
+    try {
+      await fetch("/api/wardrobes", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+      if (expandedWardrobe === id) setExpandedWardrobe(null);
+      await loadAll();
+    } finally { setWDeleting(null); }
+  }
+
+  async function handleModalCreate(e) {
+    e.preventDefault();
+    setModalError("");
+    if (!modalForm.name.trim()) { setModalError("Name is required."); return; }
+    setModalSaving(true);
+    try {
+      const created = await postWardrobe(modalForm);
+      await loadAll();
+      setItemForm(f => ({ ...f, wardrobe_id: String(created.id) }));
+      setModal(false);
+      setModalForm(EMPTY_WARDROBE);
+    } catch (err) { setModalError(err.message); }
+    finally { setModalSaving(false); }
+  }
+
+  // ── Guards ──────────────────────────────────────────────────────────────────
 
   if (!isLoaded) {
     return (
@@ -128,34 +181,16 @@ export default function AdminPage() {
       </div>
     );
   }
-
-  if (!user || !ADMIN_EMAILS.includes(user.primaryEmailAddress?.emailAddress)) {
-    return null;
-  }
-
-  const field = (label, key, type = "text", placeholder = "") => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-        {label}
-      </label>
-      <input
-        type={type}
-        value={form[key]}
-        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-        placeholder={placeholder}
-        style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%" }}
-      />
-    </div>
-  );
+  if (!user || !ADMIN_EMAILS.includes(user.primaryEmailAddress?.emailAddress)) return null;
 
   const wardrobeMap = Object.fromEntries(wardrobes.map(w => [w.id, w.name]));
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <div style={{ minHeight: "100vh", background: S.cream, fontFamily: S.sans }}>
       <header style={{ borderBottom: `1px solid ${S.stone}`, padding: "20px 40px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <a href="/" style={{ fontFamily: S.serif, fontSize: 22, fontWeight: 600, color: S.ink, textDecoration: "none" }}>
-          Davenport
-        </a>
+        <a href="/" style={{ fontFamily: S.serif, fontSize: 22, fontWeight: 600, color: S.ink, textDecoration: "none" }}>Davenport</a>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <a href="/" style={{ fontFamily: S.sans, fontSize: 13, color: S.muted, textDecoration: "none" }}>Home</a>
           <UserButton afterSignOutUrl="/" />
@@ -163,177 +198,311 @@ export default function AdminPage() {
       </header>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px" }}>
-        <div style={{ marginBottom: 40 }}>
-          <h1 style={{ fontFamily: S.serif, fontSize: 40, fontWeight: 300, color: S.ink, marginBottom: 8 }}>
-            Inventory Admin
-          </h1>
-          <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted }}>
-            Add and manage items in the shop.
-          </p>
+        <div style={{ marginBottom: 32 }}>
+          <h1 style={{ fontFamily: S.serif, fontSize: 40, fontWeight: 300, color: S.ink, marginBottom: 6 }}>Inventory Admin</h1>
+          <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted }}>Manage items and wardrobes.</p>
         </div>
 
-        {/* Add Item Form */}
-        <div style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 12, padding: "32px 36px", marginBottom: 48 }}>
-          <h2 style={{ fontFamily: S.serif, fontSize: 24, fontWeight: 400, color: S.ink, marginBottom: 24 }}>Add New Item</h2>
-          <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-            <div style={{ gridColumn: "1 / -1" }}>{field("Name *", "name", "text", "Ivory Oxford Shirt")}</div>
-            {field("Brand", "brand", "text", "J.Crew")}
-            {field("Category", "category", "text", "Oxford Shirt")}
-            {field("Buy Price (USD) *", "price", "number", "85")}
-            {form.price && !isNaN(parseFloat(form.price)) ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase" }}>Rent Preview</label>
-                <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted, padding: "10px 14px", background: "#f9fafb", border: `1px solid ${S.stone}`, borderRadius: 6 }}>
-                  ${Math.round(parseFloat(form.price) * 0.0834)}/mo
-                </p>
-              </div>
-            ) : <div/>}
-            {field("Stock", "stock", "number", "1")}
-
-            {/* Wardrobe selector */}
-            <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                Wardrobe *
-              </label>
-              <div style={{ display: "flex", gap: 10 }}>
-                <select
-                  required
-                  value={form.wardrobe_id}
-                  onChange={e => setForm(f => ({ ...f, wardrobe_id: e.target.value }))}
-                  style={{ flex: 1, fontFamily: S.sans, fontSize: 14, color: form.wardrobe_id ? S.ink : S.muted, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", cursor: "pointer" }}
-                >
-                  <option value="">Select a wardrobe…</option>
-                  {wardrobes.map(w => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => { setWardrobeModal(true); setWardrobeForm(EMPTY_WARDROBE); setWardrobeError(""); }}
-                  style={{ fontFamily: S.sans, fontSize: 12, fontWeight: 600, background: "transparent", color: S.tan, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 16px", cursor: "pointer", whiteSpace: "nowrap", letterSpacing: "0.04em" }}
-                >
-                  + New Wardrobe
-                </button>
-              </div>
-            </div>
-
-            <div style={{ gridColumn: "1 / -1" }}>{field("Image URL", "image_url", "text", "https://...")}</div>
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                Description
-              </label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                rows={3}
-                placeholder="A crisp ivory oxford with a relaxed fit."
-                style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", resize: "vertical" }}
-              />
-            </div>
-            {error && (
-              <p style={{ gridColumn: "1 / -1", fontFamily: S.sans, fontSize: 13, color: "#dc2626" }}>{error}</p>
-            )}
-            <div style={{ gridColumn: "1 / -1" }}>
-              <button
-                type="submit"
-                disabled={saving}
-                style={{ fontFamily: S.sans, fontSize: 14, fontWeight: 500, background: S.ink, color: S.cream, border: "none", borderRadius: 8, padding: "12px 28px", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}
-              >
-                {saving ? "Adding..." : "Add Item"}
-              </button>
-            </div>
-          </form>
+        {/* Tab bar */}
+        <div style={{ display: "flex", borderBottom: `1px solid ${S.stone}`, marginBottom: 40 }}>
+          {[["inventory", "Inventory", items.length], ["wardrobes", "Wardrobes", wardrobes.length]].map(([key, label, count]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              style={{ fontFamily: S.sans, fontSize: 13, fontWeight: tab === key ? 600 : 400, color: tab === key ? S.ink : S.muted, background: "none", border: "none", borderBottom: tab === key ? `2px solid ${S.ink}` : "2px solid transparent", padding: "0 0 14px", marginRight: 32, cursor: "pointer", letterSpacing: "0.02em", transition: "color 0.15s, border-color 0.15s" }}
+            >
+              {label}
+              {count > 0 && <span style={{ marginLeft: 6, fontSize: 11, color: S.tan }}>({count})</span>}
+            </button>
+          ))}
         </div>
 
-        {/* Inventory Table */}
-        <div>
-          <h2 style={{ fontFamily: S.serif, fontSize: 24, fontWeight: 400, color: S.ink, marginBottom: 20 }}>
-            Current Inventory ({items.length})
-          </h2>
-          {items.length === 0 ? (
-            <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted, fontStyle: "italic" }}>No items yet.</p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {items.map((item) => (
-                <div key={item.id} style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 10, padding: "16px 24px", display: "flex", alignItems: "center", gap: 20 }}>
-                  {item.image_url ? (
-                    <img src={item.image_url} alt={item.name} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                  ) : (
-                    <div style={{ width: 56, height: 56, background: S.stone, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <span style={{ fontSize: 24 }}>👕</span>
-                    </div>
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: S.serif, fontSize: 18, color: S.ink, marginBottom: 2, fontWeight: 400 }}>{item.name}</p>
-                    <p style={{ fontFamily: S.sans, fontSize: 12, color: S.muted }}>
-                      {[item.brand, item.category].filter(Boolean).join(" · ")} · ${(item.price / 100).toFixed(0)} · {item.stock} in stock
-                      {item.wardrobe_id && wardrobeMap[item.wardrobe_id] && (
-                        <span style={{ marginLeft: 6, background: "#f0ebe3", border: `1px solid #ddd5c8`, borderRadius: 10, padding: "1px 8px", fontSize: 11, color: S.tan }}>
-                          {wardrobeMap[item.wardrobe_id]}
-                        </span>
-                      )}
+        {/* ── INVENTORY TAB ─────────────────────────────────────────────────── */}
+        {tab === "inventory" && (
+          <>
+            {/* Add Item Form */}
+            <div style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 12, padding: "32px 36px", marginBottom: 48 }}>
+              <h2 style={{ fontFamily: S.serif, fontSize: 24, fontWeight: 400, color: S.ink, marginBottom: 24 }}>Add New Item</h2>
+              <form onSubmit={handleAddItem} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Name *</Label>
+                  <Input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} placeholder="Ivory Oxford Shirt"/>
+                </div>
+
+                <div>
+                  <Label>Brand</Label>
+                  <Input value={itemForm.brand} onChange={e => setItemForm(f => ({ ...f, brand: e.target.value }))} placeholder="J.Crew"/>
+                </div>
+
+                <div>
+                  <Label>Category</Label>
+                  <Input value={itemForm.category} onChange={e => setItemForm(f => ({ ...f, category: e.target.value }))} placeholder="Oxford Shirt"/>
+                </div>
+
+                <div>
+                  <Label>Buy Price (USD) *</Label>
+                  <Input type="number" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} placeholder="85"/>
+                </div>
+
+                {itemForm.price && !isNaN(parseFloat(itemForm.price)) ? (
+                  <div>
+                    <Label>Rent Preview</Label>
+                    <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted, padding: "10px 14px", background: "#f9fafb", border: `1px solid ${S.stone}`, borderRadius: 6 }}>
+                      ${Math.round(parseFloat(itemForm.price) * 0.0834)}/mo
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deleting === item.id}
-                    style={{ fontFamily: S.sans, fontSize: 12, fontWeight: 500, background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "7px 14px", cursor: "pointer", flexShrink: 0, opacity: deleting === item.id ? 0.5 : 1 }}
-                  >
-                    {deleting === item.id ? "Deleting..." : "Delete"}
+                ) : <div/>}
+
+                <div>
+                  <Label>Stock</Label>
+                  <Input type="number" value={itemForm.stock} onChange={e => setItemForm(f => ({ ...f, stock: e.target.value }))} placeholder="1"/>
+                </div>
+
+                {/* Wardrobe selector */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Wardrobe *</Label>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <select
+                      required
+                      value={itemForm.wardrobe_id}
+                      onChange={e => setItemForm(f => ({ ...f, wardrobe_id: e.target.value }))}
+                      style={{ flex: 1, fontFamily: S.sans, fontSize: 14, color: itemForm.wardrobe_id ? S.ink : S.muted, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", cursor: "pointer" }}
+                    >
+                      <option value="">Select a wardrobe…</option>
+                      {wardrobes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => { setModal(true); setModalForm(EMPTY_WARDROBE); setModalError(""); }}
+                      style={{ fontFamily: S.sans, fontSize: 12, fontWeight: 600, background: "transparent", color: S.tan, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 16px", cursor: "pointer", whiteSpace: "nowrap" }}
+                    >
+                      + New Wardrobe
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Image URL</Label>
+                  <Input value={itemForm.image_url} onChange={e => setItemForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..."/>
+                </div>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Description</Label>
+                  <textarea
+                    value={itemForm.description}
+                    onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))}
+                    rows={3}
+                    placeholder="A crisp ivory oxford with a relaxed fit."
+                    style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", resize: "vertical" }}
+                  />
+                </div>
+
+                {itemError && <p style={{ gridColumn: "1 / -1", fontFamily: S.sans, fontSize: 13, color: "#dc2626" }}>{itemError}</p>}
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <button type="submit" disabled={itemSaving} style={{ fontFamily: S.sans, fontSize: 14, fontWeight: 500, background: S.ink, color: S.cream, border: "none", borderRadius: 8, padding: "12px 28px", cursor: itemSaving ? "not-allowed" : "pointer", opacity: itemSaving ? 0.7 : 1 }}>
+                    {itemSaving ? "Adding..." : "Add Item"}
                   </button>
                 </div>
-              ))}
+              </form>
             </div>
-          )}
-        </div>
+
+            {/* Inventory list */}
+            <div>
+              <h2 style={{ fontFamily: S.serif, fontSize: 24, fontWeight: 400, color: S.ink, marginBottom: 20 }}>
+                Current Inventory ({items.length})
+              </h2>
+              {items.length === 0 ? (
+                <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted, fontStyle: "italic" }}>No items yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {items.map(item => (
+                    <div key={item.id} style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 10, padding: "14px 20px", display: "flex", alignItems: "center", gap: 16 }}>
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.name} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}/>
+                      ) : (
+                        <div style={{ width: 52, height: 52, background: S.stone, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>👕</div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: S.serif, fontSize: 17, color: S.ink, marginBottom: 2 }}>{item.name}</p>
+                        <p style={{ fontFamily: S.sans, fontSize: 12, color: S.muted }}>
+                          {[item.brand, item.category].filter(Boolean).join(" · ")} · ${(item.price / 100).toFixed(0)} · {item.stock} in stock
+                          {item.wardrobe_id && wardrobeMap[item.wardrobe_id] && (
+                            <span style={{ marginLeft: 8, background: "#f0ebe3", border: "1px solid #ddd5c8", borderRadius: 10, padding: "1px 8px", fontSize: 11, color: S.tan }}>
+                              {wardrobeMap[item.wardrobe_id]}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <button onClick={() => handleDeleteItem(item.id)} disabled={itemDeleting === item.id}
+                        style={{ fontFamily: S.sans, fontSize: 12, background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "7px 14px", cursor: "pointer", flexShrink: 0, opacity: itemDeleting === item.id ? 0.5 : 1 }}>
+                        {itemDeleting === item.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── WARDROBES TAB ─────────────────────────────────────────────────── */}
+        {tab === "wardrobes" && (
+          <>
+            {/* Create wardrobe form */}
+            <div style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 12, padding: "32px 36px", marginBottom: 48 }}>
+              <h2 style={{ fontFamily: S.serif, fontSize: 24, fontWeight: 400, color: S.ink, marginBottom: 24 }}>Create New Wardrobe</h2>
+              <form onSubmit={handleCreateWardrobe} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Name *</Label>
+                  <Input value={wForm.name} onChange={e => setWForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Spring Essentials"/>
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Cover Photo URL</Label>
+                  <Input value={wForm.image_url} onChange={e => setWForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..."/>
+                  {wForm.image_url.trim() && (
+                    <img src={wForm.image_url.trim()} alt="" style={{ marginTop: 10, height: 80, width: 120, objectFit: "cover", borderRadius: 6, display: "block" }} onError={e => e.currentTarget.style.display = "none"}/>
+                  )}
+                </div>
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Label>Description</Label>
+                  <textarea
+                    value={wForm.description}
+                    onChange={e => setWForm(f => ({ ...f, description: e.target.value }))}
+                    rows={2}
+                    placeholder="What's the vibe of this wardrobe?"
+                    style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", resize: "vertical" }}
+                  />
+                </div>
+                {wError && <p style={{ gridColumn: "1 / -1", fontFamily: S.sans, fontSize: 13, color: "#dc2626" }}>{wError}</p>}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <button type="submit" disabled={wSaving} style={{ fontFamily: S.sans, fontSize: 14, fontWeight: 500, background: S.ink, color: S.cream, border: "none", borderRadius: 8, padding: "12px 28px", cursor: wSaving ? "not-allowed" : "pointer", opacity: wSaving ? 0.7 : 1 }}>
+                    {wSaving ? "Creating…" : "Create Wardrobe"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Wardrobe list */}
+            <div>
+              <h2 style={{ fontFamily: S.serif, fontSize: 24, fontWeight: 400, color: S.ink, marginBottom: 20 }}>
+                Current Wardrobes ({wardrobes.length})
+              </h2>
+              {wardrobes.length === 0 ? (
+                <p style={{ fontFamily: S.sans, fontSize: 14, color: S.muted, fontStyle: "italic" }}>No wardrobes yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {wardrobes.map(w => {
+                    const wardrobeItems = items.filter(i => i.wardrobe_id === w.id);
+                    const isExpanded = expandedWardrobe === w.id;
+                    return (
+                      <div key={w.id} style={{ background: "#fff", border: `1px solid ${S.stone}`, borderRadius: 10, overflow: "hidden" }}>
+                        {/* Header row */}
+                        <div
+                          onClick={() => setExpandedWardrobe(isExpanded ? null : w.id)}
+                          style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, cursor: "pointer" }}
+                        >
+                          {w.image_url ? (
+                            <img src={w.image_url} alt="" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, flexShrink: 0 }}/>
+                          ) : (
+                            <div style={{ width: 52, height: 52, background: S.stone, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 22 }}>🗂️</div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontFamily: S.serif, fontSize: 18, color: S.ink, marginBottom: 3 }}>{w.name}</p>
+                            <p style={{ fontFamily: S.sans, fontSize: 12, color: S.muted }}>
+                              {w.description || <em>No description</em>}
+                              <span style={{ marginLeft: 8, background: "#f0ebe3", border: "1px solid #ddd5c8", borderRadius: 10, padding: "1px 8px", fontSize: 11, color: S.tan }}>
+                                {wardrobeItems.length} item{wardrobeItems.length !== 1 ? "s" : ""}
+                              </span>
+                            </p>
+                          </div>
+                          <span style={{ fontSize: 13, color: S.muted, display: "inline-block", transform: isExpanded ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0, marginRight: 4 }}>▾</span>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDeleteWardrobe(w.id); }}
+                            disabled={wDeleting === w.id}
+                            style={{ fontFamily: S.sans, fontSize: 12, background: "transparent", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 6, padding: "7px 14px", cursor: "pointer", flexShrink: 0, opacity: wDeleting === w.id ? 0.5 : 1 }}
+                          >
+                            {wDeleting === w.id ? "Deleting…" : "Delete"}
+                          </button>
+                        </div>
+
+                        {/* Expanded items */}
+                        {isExpanded && (
+                          <div style={{ borderTop: `1px solid ${S.stone}`, background: S.cream }}>
+                            {wardrobeItems.length === 0 ? (
+                              <p style={{ fontFamily: S.sans, fontSize: 13, color: S.muted, padding: "16px 20px", fontStyle: "italic" }}>
+                                No items in this wardrobe yet. Add items from the Inventory tab.
+                              </p>
+                            ) : (
+                              wardrobeItems.map((item, idx) => (
+                                <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 20px", borderBottom: idx < wardrobeItems.length - 1 ? `1px solid ${S.stone}` : "none" }}>
+                                  {item.image_url ? (
+                                    <img src={item.image_url} alt="" style={{ width: 42, height: 42, objectFit: "cover", borderRadius: 5, flexShrink: 0 }}/>
+                                  ) : (
+                                    <div style={{ width: 42, height: 42, background: S.stone, borderRadius: 5, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 18 }}>👕</div>
+                                  )}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontFamily: S.serif, fontSize: 15, color: S.ink }}>{item.name}</p>
+                                    <p style={{ fontFamily: S.sans, fontSize: 11, color: S.muted }}>
+                                      {[item.brand, item.category].filter(Boolean).join(" · ")} · ${(item.price / 100).toFixed(0)} · {item.stock} in stock
+                                    </p>
+                                  </div>
+                                  <button
+                                    onClick={() => handleRemoveFromWardrobe(item.id)}
+                                    disabled={removingItem === item.id}
+                                    style={{ fontFamily: S.sans, fontSize: 12, background: "transparent", color: S.tan, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "6px 12px", cursor: "pointer", flexShrink: 0, opacity: removingItem === item.id ? 0.5 : 1 }}
+                                  >
+                                    {removingItem === item.id ? "Removing…" : "Remove"}
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </main>
 
-      {/* Create Wardrobe Modal */}
-      {wardrobeModal && (
+      {/* New Wardrobe modal (from inventory tab dropdown) */}
+      {modal && (
         <div style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ background: "#fff", width: "100%", maxWidth: 440, borderRadius: 12, padding: "36px 36px", position: "relative" }}>
-            <button
-              onClick={() => setWardrobeModal(false)}
-              style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: S.muted, lineHeight: 1 }}
-            >✕</button>
+          <div style={{ background: "#fff", width: "100%", maxWidth: 460, borderRadius: 12, padding: "36px 36px", position: "relative" }}>
+            <button onClick={() => setModal(false)} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: S.muted, lineHeight: 1 }}>✕</button>
             <h3 style={{ fontFamily: S.serif, fontSize: 26, fontWeight: 600, color: S.ink, marginBottom: 6 }}>New Wardrobe</h3>
             <p style={{ fontFamily: S.sans, fontSize: 13, color: S.muted, marginBottom: 24 }}>Create a wardrobe to group inventory items.</p>
-            <form onSubmit={handleWardrobeSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase" }}>Name *</label>
-                <input
-                  autoFocus
-                  value={wardrobeForm.name}
-                  onChange={e => setWardrobeForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Spring Essentials"
-                  style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: S.cream, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px" }}
-                />
+            <form onSubmit={handleModalCreate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <Label>Name *</Label>
+                <Input autoFocus value={modalForm.name} onChange={e => setModalForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Spring Essentials"/>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontFamily: S.sans, fontSize: 11, fontWeight: 600, color: S.tan, letterSpacing: "0.06em", textTransform: "uppercase" }}>Description</label>
+              <div>
+                <Label>Cover Photo URL</Label>
+                <Input value={modalForm.image_url} onChange={e => setModalForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..."/>
+              </div>
+              <div>
+                <Label>Description</Label>
                 <textarea
-                  value={wardrobeForm.description}
-                  onChange={e => setWardrobeForm(f => ({ ...f, description: e.target.value }))}
-                  rows={3}
-                  placeholder="What's the vibe of this wardrobe?"
-                  style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: S.cream, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", resize: "vertical" }}
+                  value={modalForm.description}
+                  onChange={e => setModalForm(f => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  placeholder="What's the vibe?"
+                  style={{ fontFamily: S.sans, fontSize: 14, color: S.ink, background: S.cream, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 14px", width: "100%", resize: "vertical" }}
                 />
               </div>
-              {wardrobeError && <p style={{ fontFamily: S.sans, fontSize: 13, color: "#dc2626" }}>{wardrobeError}</p>}
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
-                <button
-                  type="button"
-                  onClick={() => setWardrobeModal(false)}
-                  style={{ fontFamily: S.sans, fontSize: 13, background: "transparent", color: S.muted, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 20px", cursor: "pointer" }}
-                >
+              {modalError && <p style={{ fontFamily: S.sans, fontSize: 13, color: "#dc2626" }}>{modalError}</p>}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button type="button" onClick={() => setModal(false)} style={{ fontFamily: S.sans, fontSize: 13, background: "transparent", color: S.muted, border: `1px solid ${S.stone}`, borderRadius: 6, padding: "10px 20px", cursor: "pointer" }}>
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={wardrobeSaving}
-                  style={{ fontFamily: S.sans, fontSize: 13, fontWeight: 600, background: S.ink, color: S.cream, border: "none", borderRadius: 6, padding: "10px 24px", cursor: wardrobeSaving ? "not-allowed" : "pointer", opacity: wardrobeSaving ? 0.7 : 1 }}
-                >
-                  {wardrobeSaving ? "Creating…" : "Create Wardrobe"}
+                <button type="submit" disabled={modalSaving} style={{ fontFamily: S.sans, fontSize: 13, fontWeight: 600, background: S.ink, color: S.cream, border: "none", borderRadius: 6, padding: "10px 24px", cursor: modalSaving ? "not-allowed" : "pointer", opacity: modalSaving ? 0.7 : 1 }}>
+                  {modalSaving ? "Creating…" : "Create Wardrobe"}
                 </button>
               </div>
             </form>

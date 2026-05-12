@@ -32,6 +32,20 @@ export async function POST(req) {
   }
 }
 
+export async function PATCH(req) {
+  const { userId } = auth();
+  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const sql = getDb();
+  try {
+    const { id, wardrobe_id } = await req.json();
+    await sql`UPDATE inventory SET wardrobe_id = ${wardrobe_id ?? null} WHERE id = ${id}`;
+    return Response.json({ ok: true });
+  } catch (err) {
+    return Response.json({ error: err.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(req) {
   const { userId } = auth();
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
