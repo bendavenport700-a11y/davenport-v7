@@ -339,39 +339,36 @@ function HomePage({ setPage }) {
   return (
     <div>
       {/* Hero — Founder Story */}
-      <section style={{ display:"grid", gridTemplateColumns:"1fr 1fr", minHeight:"calc(100vh - 60px)", alignItems:"start", background:S.cream }}>
-        {/* Left: photo — sticky so it stays in frame as story scrolls */}
-        <div style={{ position:"sticky", top:60, height:"calc(100vh - 60px)", overflow:"hidden", background:"#e8e3dc" }}>
+      <section style={{ minHeight:"calc(100vh - 60px)", display:"flex", alignItems:"center", background:S.cream, padding:"80px 40px" }}>
+        <div style={{ maxWidth:760, margin:"0 auto", width:"100%" }}>
+          <p style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, letterSpacing:"0.01em", color:S.ink, marginBottom:48 }}>Davenport</p>
+          {/* Author headshot */}
           <img
             src="https://i.imgur.com/1y1EZRn.png"
             alt="Ben Davenport"
-            style={{ width:"100%", height:"100%", objectFit:"cover", objectPosition:"center top", display:"block" }}
+            style={{ width:120, height:120, borderRadius:"50%", objectFit:"cover", objectPosition:"center top", display:"block", marginBottom:28, border:`3px solid ${S.stone}` }}
           />
-        </div>
-        {/* Right: content */}
-        <div style={{ padding:"72px 68px 80px", display:"flex", flexDirection:"column", justifyContent:"center", background:S.cream }}>
-          <p style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, letterSpacing:"0.01em", color:S.ink, marginBottom:36 }}>Davenport</p>
-          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:S.tan, marginBottom:18, fontWeight:500 }}>Better clothes. Less effort.</p>
-          <h1 style={{ fontFamily:S.serif, fontSize:"clamp(40px, 4.5vw, 64px)", fontWeight:600, lineHeight:0.95, letterSpacing:"-2px", color:S.ink, marginBottom:36 }}>
+          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:S.tan, marginBottom:16, fontWeight:500 }}>Better clothes. Less effort.</p>
+          <h1 style={{ fontFamily:S.serif, fontSize:"clamp(44px, 6vw, 80px)", fontWeight:600, lineHeight:0.93, letterSpacing:"-2.5px", color:S.ink, marginBottom:36 }}>
             A smarter way<br/><em style={{ fontStyle:"italic", color:"#6b5e4e" }}>for men</em><br/>to dress.
           </h1>
-          <div style={{ display:"flex", flexDirection:"column", gap:16, marginBottom:12 }}>
-            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, lineHeight:1.85 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:16, marginBottom:12, maxWidth:600 }}>
+            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
               I'm Ben Davenport, a student at Penn State — and like most guys in college, I spent way too much money on clothes I didn't need, that didn't fit right, and that I had to haul back and forth every semester.
             </p>
-            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, lineHeight:1.85 }}>
+            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
               It started in high school when I learned about fast fashion and the damage it does — to the environment, to our wallets, to the way we actually think about style. I kept thinking: there has to be a better way.
             </p>
-            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, lineHeight:1.85 }}>
+            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
               When I got to college, I noticed something. Guys actually care about how they look. They want to dress well, show up with confidence, and stay current — but the whole system works against them. Impulse buys. Wrong sizes. Clothes you wear twice. Bags stuffed with stuff you forgot you even owned.
             </p>
-            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, lineHeight:1.85 }}>
+            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
               Davenport is my answer to all of it. A curated wardrobe, sent to you, personalized to your style. Wear it as long as you want. If something doesn't fit, send it back. If you love a piece, buy it outright. When you're ready for something new, swap your whole wardrobe with a few clicks.
             </p>
-            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, lineHeight:1.85 }}>
+            <p style={{ fontFamily:S.sans, fontSize:15, color:S.muted, lineHeight:1.85 }}>
               Going on a trip? We'll build you a wardrobe for it. Starting an internship? We've got you. Just want to look good without thinking about it? That's exactly what this is for.
             </p>
-            <p style={{ fontFamily:S.sans, fontSize:14, color:S.ink, lineHeight:1.85, fontWeight:500 }}>
+            <p style={{ fontFamily:S.sans, fontSize:15, color:S.ink, lineHeight:1.85, fontWeight:500 }}>
               I built this because I needed it. And I think you do too.
             </p>
           </div>
