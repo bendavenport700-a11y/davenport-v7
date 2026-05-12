@@ -55,6 +55,19 @@ export async function GET() {
       )
     `;
 
+    await sql`
+      CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        clerk_id TEXT NOT NULL,
+        user_name TEXT,
+        user_image TEXT,
+        caption TEXT NOT NULL,
+        image_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        likes INTEGER DEFAULT 0
+      )
+    `;
+
     return Response.json({ ok: true, message: "Tables created." });
   } catch (err) {
     return Response.json({ ok: false, error: err.message }, { status: 500 });

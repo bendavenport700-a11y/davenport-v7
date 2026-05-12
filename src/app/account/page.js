@@ -48,6 +48,7 @@ export default function AccountPage() {
   const [history, setHistory] = useState([]);
   const [referralCode, setReferralCode] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [userPosts, setUserPosts] = useState([]);
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -59,6 +60,10 @@ export default function AccountPage() {
     fetch(`/api/referral?clerk_id=${user.id}`)
       .then(r => r.json())
       .then(d => setReferralCode(d.referral_code ?? null))
+      .catch(() => {});
+    fetch(`/api/posts?clerk_id=${user.id}`)
+      .then(r => r.json())
+      .then(rows => setUserPosts(Array.isArray(rows) ? rows : []))
       .catch(() => {});
   }, [isSignedIn, user?.id]);
 
@@ -132,8 +137,8 @@ export default function AccountPage() {
               <p style={{ fontSize:11, color:S.muted, marginTop:4, letterSpacing:"0.06em" }}>Points</p>
             </div>
             <div style={{ borderLeft:`1px solid ${S.stone}`, borderRight:`1px solid ${S.stone}` }}>
-              <p style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.ink, lineHeight:1 }}>{history.length}</p>
-              <p style={{ fontSize:11, color:S.muted, marginTop:4, letterSpacing:"0.06em" }}>Actions</p>
+              <p style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.ink, lineHeight:1 }}>{userPosts.length}</p>
+              <p style={{ fontSize:11, color:S.muted, marginTop:4, letterSpacing:"0.06em" }}>Posts</p>
             </div>
             <div>
               <p style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.ink, lineHeight:1 }}>{referralCode ? 1 : 0}</p>
@@ -141,6 +146,26 @@ export default function AccountPage() {
             </div>
           </div>
         </div>
+
+        {/* My Posts grid — Instagram style, full width below stats */}
+        {userPosts.length > 0 ? (
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:2, marginTop:2 }}>
+            {userPosts.map(post => (
+              <div key={post.id} style={{ aspectRatio:"1", background:"#d4b896", position:"relative", overflow:"hidden" }}>
+                {post.image_url
+                  ? <img src={post.image_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
+                  : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", padding:10, background:"#c4a882" }}>
+                      <p style={{ fontFamily:"'Outfit',sans-serif", fontSize:10, color:"#fff", textAlign:"center", lineHeight:1.4, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical" }}>{post.caption}</p>
+                    </div>
+                }
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background:"#fff", borderTop:`1px solid ${S.stone}`, padding:"24px 20px", textAlign:"center" }}>
+            <p style={{ fontFamily:"'Outfit',sans-serif", fontSize:13, color:S.muted }}>No posts yet. Share a fit on Community to earn 5 pts.</p>
+          </div>
+        )}
 
         <div style={{ padding:"0 16px", marginTop:16, display:"flex", flexDirection:"column", gap:12 }}>
 
@@ -332,7 +357,7 @@ export default function AccountPage() {
         </div>
 
         {/* Points history */}
-        <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px" }}>
+        <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px", marginBottom:32 }}>
           <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:20 }}>Points History</h3>
           {history.length === 0 ? (
             <p style={{ fontSize:13, color:S.muted }}>No points earned yet — start by sharing a community post or referring a friend.</p>
@@ -347,6 +372,28 @@ export default function AccountPage() {
                   <span style={{ fontSize:13, fontWeight:600, color: row.amount > 0 ? "#16a34a" : "#dc2626" }}>
                     {row.amount > 0 ? "+" : ""}{row.amount} pts
                   </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* My Posts */}
+        <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px" }}>
+          <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:20 }}>My Posts</h3>
+          {userPosts.length === 0 ? (
+            <p style={{ fontSize:13, color:S.muted }}>No posts yet — share your first fit on the Community page and earn 5 pts.</p>
+          ) : (
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))", gap:10 }}>
+              {userPosts.map(post => (
+                <div key={post.id} style={{ aspectRatio:"1", background:"#c4a882", position:"relative", overflow:"hidden" }}>
+                  {post.image_url
+                    ? <img src={post.image_url} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }}/>
+                    : <div style={{ width:"100%", height:"100%", display:"flex", flexDirection:"column", justifyContent:"flex-end", padding:12, background:"linear-gradient(135deg,#c4a882,#9c8b78)" }}>
+                        <p style={{ fontSize:11, color:"#fff", lineHeight:1.5, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:4, WebkitBoxOrient:"vertical" }}>{post.caption}</p>
+                        <p style={{ fontSize:9, color:"rgba(255,255,255,0.6)", marginTop:6, letterSpacing:"0.06em" }}>{formatDate(post.created_at)}</p>
+                      </div>
+                  }
                 </div>
               ))}
             </div>

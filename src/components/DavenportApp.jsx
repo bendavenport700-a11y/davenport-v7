@@ -1566,12 +1566,40 @@ function CommunityPage({ setPage }) {
   const [liked, setLiked] = useState({});
   const [showPost, setShowPost] = useState(false);
   const [caption, setCaption] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [postStatus, setPostStatus] = useState(null);
+  const [dbPosts, setDbPosts] = useState([]);
   const { isSignedIn, user } = useUser();
   const { openSignIn } = useClerk();
 
+  useEffect(() => {
+    fetch("/api/posts")
+      .then(r => r.json())
+      .then(rows => setDbPosts(Array.isArray(rows) ? rows : []))
+      .catch(() => {});
+  }, []);
+
+  function normalizeDbPost(row) {
+    return {
+      id: `db-${row.id}`,
+      user: row.user_name || "member",
+      school: null,
+      userImage: row.user_image || null,
+      bg: "#c4a882",
+      imageUrl: row.image_url || null,
+      caption: row.caption,
+      items: [],
+      likes: row.likes || 0,
+      wears: null,
+      aspect: "wide",
+      createdAt: row.created_at,
+      isDb: true,
+    };
+  }
+
   const schools = ["All", ...new Set(POSTS.map(p => p.school))];
-  const filtered = filter === "All" ? POSTS : POSTS.filter(p => p.school === filter);
+  const staticFiltered = filter === "All" ? POSTS : POSTS.filter(p => p.school === filter);
+  const filtered = [...dbPosts.map(normalizeDbPost), ...staticFiltered];
 
   function toggleLike(id) {
     setLiked(l => ({ ...l, [id]: !l[id] }));
@@ -1581,6 +1609,7 @@ function CommunityPage({ setPage }) {
     if (!isSignedIn) { openSignIn(); return; }
     setShowPost(true);
     setCaption("");
+    setImageUrl("");
     setPostStatus(null);
   }
 
@@ -1589,11 +1618,21 @@ function CommunityPage({ setPage }) {
     if (!caption.trim() || !user?.id) return;
     setPostStatus("submitting");
     try {
-      await fetch("/api/points", {
+      await fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clerk_id: user.id, amount: 5, reason: "Community post" }),
+        body: JSON.stringify({
+          clerk_id: user.id,
+          user_name: user.firstName
+            ? `${user.firstName}${user.lastName ? " " + user.lastName : ""}`
+            : user.primaryEmailAddress?.emailAddress?.split("@")[0] ?? "member",
+          user_image: user.imageUrl || null,
+          caption,
+          image_url: imageUrl.trim() || null,
+        }),
       });
+      const rows = await fetch("/api/posts").then(r => r.json());
+      setDbPosts(Array.isArray(rows) ? rows : []);
       setPostStatus("done");
     } catch {
       setPostStatus("done");
@@ -1636,19 +1675,27 @@ function CommunityPage({ setPage }) {
                 {/* Post header */}
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 16px" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                    <div style={{ width:36, height:36, borderRadius:"50%", background:post.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>👤</div>
+                    {post.userImage
+                      ? <img src={post.userImage} alt="" style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }}/>
+                      : <div style={{ width:36, height:36, borderRadius:"50%", background:post.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>👤</div>
+                    }
                     <div>
                       <p style={{ fontFamily:S.sans, fontSize:13, fontWeight:600, color:S.ink }}>@{post.user}</p>
-                      <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted }}>{post.school}</p>
+                      {post.school && <p style={{ fontFamily:S.sans, fontSize:11, color:S.muted }}>{post.school}</p>}
                     </div>
                   </div>
                   <span style={{ fontFamily:S.sans, fontSize:10, fontWeight:600, color:S.tan, background:"#f0ebe3", border:`1px solid #ddd5c8`, borderRadius:20, padding:"3px 8px" }}>+5 pts</span>
                 </div>
                 {/* Photo area */}
                 <div style={{ background:post.bg, aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden", width:"100%" }}>
-                  <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.2) 100%)" }}/>
-                  <div style={{ fontSize:72, position:"relative", zIndex:1 }}>👤</div>
-                  {post.id % 3 === 0 && (
+                  {post.imageUrl
+                    ? <img src={post.imageUrl} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }}/>
+                    : <>
+                        <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.2) 100%)" }}/>
+                        <div style={{ fontSize:72, position:"relative", zIndex:1 }}>👤</div>
+                      </>
+                  }
+                  {typeof post.id === "number" && post.id % 3 === 0 && (
                     <div style={{ position:"absolute", bottom:12, left:12, display:"flex", alignItems:"center", gap:5, background:"rgba(0,0,0,0.5)", padding:"4px 10px", borderRadius:2, zIndex:2 }}>
                       <div style={{ width:0, height:0, borderTop:"5px solid transparent", borderBottom:"5px solid transparent", borderLeft:"8px solid #fff" }}/>
                       <span style={{ fontFamily:S.sans, fontSize:9, color:"#fff" }}>VIDEO</span>
@@ -1694,12 +1741,20 @@ function CommunityPage({ setPage }) {
               {filtered.map(post => (
                 <div key={post.id} style={{ breakInside:"avoid", marginBottom:20, background:"#fff", border:`1px solid ${S.stone}` }}>
                   <div style={{ background:post.bg, height: post.aspect==="tall" ? 280 : 180, display:"flex", alignItems:"center", justifyContent:"center", position:"relative", overflow:"hidden" }}>
-                    <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.15) 100%)" }}/>
-                    <div style={{ textAlign:"center", position:"relative", zIndex:1 }}>
-                      <div style={{ width:52, height:52, borderRadius:"50%", background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, margin:"0 auto 12px", border:"1px solid rgba(255,255,255,0.2)" }}>👤</div>
-                      <p style={{ fontFamily:S.sans, fontSize:11, color:"rgba(255,255,255,0.7)", letterSpacing:"0.06em" }}>@{post.user}</p>
-                    </div>
-                    {post.id % 3 === 0 && (
+                    {post.imageUrl
+                      ? <img src={post.imageUrl} alt="" style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover" }}/>
+                      : <>
+                          <div style={{ position:"absolute", inset:0, background:"linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%, rgba(0,0,0,0.15) 100%)" }}/>
+                          <div style={{ textAlign:"center", position:"relative", zIndex:1 }}>
+                            {post.userImage
+                              ? <img src={post.userImage} alt="" style={{ width:52, height:52, borderRadius:"50%", objectFit:"cover", margin:"0 auto 12px", display:"block" }}/>
+                              : <div style={{ width:52, height:52, borderRadius:"50%", background:"rgba(255,255,255,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, margin:"0 auto 12px", border:"1px solid rgba(255,255,255,0.2)" }}>👤</div>
+                            }
+                            <p style={{ fontFamily:S.sans, fontSize:11, color:"rgba(255,255,255,0.7)", letterSpacing:"0.06em" }}>@{post.user}</p>
+                          </div>
+                        </>
+                    }
+                    {typeof post.id === "number" && post.id % 3 === 0 && (
                       <div style={{ position:"absolute", bottom:12, left:12, display:"flex", alignItems:"center", gap:5, background:"rgba(0,0,0,0.5)", padding:"4px 10px", borderRadius:2 }}>
                         <div style={{ width:0, height:0, borderTop:"5px solid transparent", borderBottom:"5px solid transparent", borderLeft:"8px solid #fff" }}/>
                         <span style={{ fontFamily:S.sans, fontSize:9, color:"#fff", letterSpacing:"0.06em" }}>VIDEO</span>
@@ -1764,16 +1819,30 @@ function CommunityPage({ setPage }) {
                 <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10, fontWeight:500 }}>Share Your Look</p>
                 <h3 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:6 }}>Submit a post</h3>
                 <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:24, lineHeight:1.7 }}>Share your caption and tag your pieces. Earn <strong>5 pts</strong> instantly.</p>
+                <label style={{ display:"block", fontFamily:S.sans, fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:S.muted, marginBottom:6 }}>Caption</label>
                 <textarea
                   value={caption}
                   onChange={e => setCaption(e.target.value)}
                   placeholder="Describe your fit — pieces, occasion, vibe..."
                   rows={4}
                   required
-                  style={{ width:"100%", padding:"12px 14px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, resize:"vertical", lineHeight:1.6, marginBottom:20, background:S.cream }}
+                  style={{ width:"100%", padding:"12px 14px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, resize:"vertical", lineHeight:1.6, marginBottom:16, background:S.cream }}
                 />
-                <button type="submit" disabled={postStatus === "submitting" || !caption.trim()} style={{ width:"100%", background:postStatus==="submitting"?S.muted:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"14px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>
-                  {postStatus === "submitting" ? "Submitting…" : "Submit & Earn 5 pts"}
+                <label style={{ display:"block", fontFamily:S.sans, fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:S.muted, marginBottom:6 }}>Photo URL <span style={{ color:"#c4bdb5" }}>(optional)</span></label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={e => setImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  style={{ width:"100%", padding:"11px 14px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, marginBottom:20, background:S.cream }}
+                />
+                {imageUrl.trim() && (
+                  <div style={{ marginBottom:16, border:`1px solid ${S.stone}`, overflow:"hidden", aspectRatio:"1", maxHeight:160 }}>
+                    <img src={imageUrl.trim()} alt="" style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} onError={e=>e.currentTarget.style.display="none"}/>
+                  </div>
+                )}
+                <button type="submit" disabled={postStatus === "submitting" || !caption.trim()} style={{ width:"100%", background:postStatus==="submitting"?S.muted:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"14px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", minHeight:48 }}>
+                  {postStatus === "submitting" ? "Submitting…" : "Post & Earn 5 pts"}
                 </button>
               </form>
             )}
