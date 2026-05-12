@@ -707,32 +707,69 @@ function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, onCardClick, d
   );
 }
 
-// ─── DB WARDROBE CARD ─────────────────────────────────────────────────────────
-function DbWardrobeCard({ wardrobe, itemCount, isMobile, onClick }) {
+// ─── DB WARDROBE CARD (SLIDESHOW) ────────────────────────────────────────────
+function WardrobeSlideCard({ wardrobe, pieces, itemCount, isMobile, onView }) {
   const [hov, setHov] = useState(false);
+  const [idx, setIdx] = useState(0);
+  const [fade, setFade] = useState(true);
+  const photos = pieces.filter(p => p.image_url);
+
+  useEffect(() => {
+    if (photos.length <= 1) return;
+    const t = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % photos.length);
+        setFade(true);
+      }, 300);
+    }, 2500);
+    return () => clearInterval(t);
+  }, [photos.length]);
+
+  const currentPhoto = photos[idx];
+
   return (
     <div
-      onClick={onClick}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      style={{ cursor:"pointer", background:"#fff", border:`1px solid ${hov ? S.tan : S.stone}`, overflow:"hidden", transition:"border-color 0.2s, transform 0.2s, box-shadow 0.2s", transform: hov ? "translateY(-3px)" : "none", boxShadow: hov ? "0 12px 32px rgba(0,0,0,0.07)" : "none" }}
+      style={{ background:"#fff", border:`1px solid ${hov ? S.tan : S.stone}`, overflow:"hidden", transition:"border-color 0.2s, transform 0.2s, box-shadow 0.2s", transform: hov ? "translateY(-3px)" : "none", boxShadow: hov ? "0 12px 32px rgba(0,0,0,0.07)" : "none" }}
     >
-      {wardrobe.image_url ? (
-        <img src={wardrobe.image_url} alt={wardrobe.name} style={{ width:"100%", height:200, objectFit:"cover", display:"block" }}/>
-      ) : (
-        <div style={{ width:"100%", height:200, background:S.stone, display:"flex", alignItems:"center", justifyContent:"center", fontSize:48 }}>🗂️</div>
-      )}
-      <div style={{ padding: isMobile ? "20px" : "24px 28px" }}>
+      <div style={{ position:"relative", width:"100%", height:240, overflow:"hidden", background:S.stone }}>
+        {photos.length === 0 ? (
+          <div style={{ width:"100%", height:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:10 }}>
+            <span style={{ fontSize:36 }}>🗂️</span>
+            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.12em", textTransform:"uppercase", color:S.muted }}>Coming Soon</p>
+          </div>
+        ) : (
+          <img
+            key={currentPhoto.id}
+            src={currentPhoto.image_url}
+            alt={currentPhoto.name}
+            style={{ width:"100%", height:"100%", objectFit:"cover", display:"block", opacity: fade ? 1 : 0, transition:"opacity 0.3s ease" }}
+          />
+        )}
+        {photos.length > 1 && (
+          <div style={{ position:"absolute", bottom:10, left:0, right:0, display:"flex", justifyContent:"center", gap:5 }}>
+            {photos.map((_, i) => (
+              <div key={i} style={{ width: i === idx ? 18 : 6, height:6, borderRadius:3, background: i === idx ? "#fff" : "rgba(255,255,255,0.5)", transition:"width 0.3s, background 0.3s" }}/>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: isMobile ? "20px" : "22px 26px 24px" }}>
         <p style={{ fontFamily:S.sans, fontSize:10, letterSpacing:"0.14em", textTransform:"uppercase", color:S.tan, marginBottom:8 }}>
           {itemCount} piece{itemCount !== 1 ? "s" : ""}
         </p>
-        <h3 style={{ fontFamily:S.serif, fontSize: isMobile ? 22 : 26, fontWeight:600, color:S.ink, marginBottom:8 }}>{wardrobe.name}</h3>
+        <h3 style={{ fontFamily:S.serif, fontSize: isMobile ? 22 : 24, fontWeight:600, color:S.ink, marginBottom: wardrobe.description ? 8 : 16 }}>{wardrobe.name}</h3>
         {wardrobe.description && (
-          <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, lineHeight:1.65, marginBottom:14 }}>{wardrobe.description}</p>
+          <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, lineHeight:1.65, marginBottom:16 }}>{wardrobe.description}</p>
         )}
-        <p style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, color:S.tan, letterSpacing:"0.08em", textTransform:"uppercase" }}>
-          Shop {wardrobe.name} →
-        </p>
+        <button
+          onClick={onView}
+          style={{ background:S.ink, color:"#fff", border:"none", padding:"10px 20px", fontFamily:S.sans, fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", cursor:"pointer" }}
+        >
+          View Wardrobe
+        </button>
       </div>
     </div>
   );
@@ -742,6 +779,7 @@ function DbWardrobeCard({ wardrobe, itemCount, isMobile, onClick }) {
 function DbWardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase, items }) {
   const isMobile = useMobile();
   const [wardrobe, setWardrobe] = useState(null);
+  const [catFilter, setCatFilter] = useState(null);
 
   useEffect(() => {
     fetch("/api/wardrobes")
@@ -754,6 +792,8 @@ function DbWardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase, it
   }, [wardrobeId]);
 
   const pieces = items.filter(i => i.wardrobe_id === wardrobeId);
+  const filtered = catFilter ? pieces.filter(i => i.category === catFilter) : pieces;
+  const activeCats = [...new Set(pieces.map(i => i.category).filter(Boolean))];
 
   if (!wardrobe) {
     return (
@@ -775,6 +815,16 @@ function DbWardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase, it
             <p style={{ fontFamily:S.sans, fontSize: isMobile ? 14 : 16, color:S.muted, maxWidth:520 }}>{wardrobe.description}</p>
           )}
           <p style={{ fontFamily:S.sans, fontSize:12, color:S.tan, marginTop:12 }}>{pieces.length} piece{pieces.length !== 1 ? "s" : ""}</p>
+          {activeCats.length > 1 && (
+            <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:18 }}>
+              {[null, ...CATEGORIES.filter(c => activeCats.includes(c))].map(c => (
+                <button key={c ?? "all"} onClick={() => setCatFilter(catFilter === c ? null : c)}
+                  style={{ background: catFilter === c ? S.ink : "#fff", color: catFilter === c ? S.cream : S.muted, border:`1px solid ${catFilter === c ? S.ink : S.stone}`, padding: isMobile ? "8px 12px" : "6px 14px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase", minHeight:36 }}>
+                  {c ?? "All"}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -784,9 +834,13 @@ function DbWardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase, it
             <p style={{ fontFamily:S.serif, fontSize:32, fontWeight:300, color:S.tan, fontStyle:"italic", marginBottom:12 }}>No pieces yet.</p>
             <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted }}>Items added to this wardrobe in admin will appear here.</p>
           </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign:"center", padding:"60px 0" }}>
+            <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted }}>No {catFilter} items in this wardrobe.</p>
+          </div>
         ) : (
           <div style={{ display:"grid", gridTemplateColumns: isMobile ? "repeat(2,1fr)" : "repeat(auto-fill,minmax(228px,1fr))", gap: isMobile ? 10 : 22 }}>
-            {pieces.map(item => (
+            {filtered.map(item => (
               <ItemCard key={item.id} item={item} setPage={setPage} addToSuitcase={addToSuitcase} inSuitcase={suitcase.some(s=>s.id===item.id)} isMobile={isMobile}/>
             ))}
           </div>
@@ -892,12 +946,13 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase, items=[] }) {
         ) : dbWardrobes.length === 0 ? (
           <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, fontStyle:"italic" }}>No wardrobes yet.</p>
         ) : (
-          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(320px,1fr))", gap: isMobile ? 16 : 28 }}>
+          <div style={{ display:"grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill,minmax(340px,1fr))", gap: isMobile ? 16 : 28 }}>
             {dbWardrobes.map(w => {
-              const count = items.filter(i => i.wardrobe_id === w.id && (!catFilter || i.category === catFilter)).length;
+              const allPieces = items.filter(i => i.wardrobe_id === w.id);
+              const count = catFilter ? allPieces.filter(i => i.category === catFilter).length : allPieces.length;
               if (catFilter && count === 0) return null;
               return (
-                <DbWardrobeCard key={w.id} wardrobe={w} itemCount={count} isMobile={isMobile} onClick={()=>handleDbWardrobeClick(w.id)}/>
+                <WardrobeSlideCard key={w.id} wardrobe={w} pieces={allPieces} itemCount={allPieces.length} isMobile={isMobile} onView={()=>handleDbWardrobeClick(w.id)}/>
               );
             })}
           </div>
