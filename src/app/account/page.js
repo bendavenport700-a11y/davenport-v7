@@ -16,9 +16,10 @@ const S = {
 };
 
 const EARN_WAYS = [
-  { action: "Share a community post", pts: 5,  icon: "📸" },
-  { action: "Refer a friend",         pts: 1,  icon: "🤝" },
-  { action: "Leave a piece review",   pts: 10, icon: "⭐" },
+  { action: "Share a community post",    pts: 5,  icon: "📸" },
+  { action: "Refer a friend",            pts: 1,  icon: "🤝" },
+  { action: "Leave a piece review",      pts: 10, icon: "⭐" },
+  { action: "Spend $50+ on an order",    pts: 20, icon: "🛍️" },
 ];
 
 const REDEEM_WAYS = [
