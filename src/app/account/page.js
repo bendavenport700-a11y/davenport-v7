@@ -59,6 +59,8 @@ export default function AccountPage() {
   const [rentals, setRentals] = useState([]);
   const [returningId, setReturningId] = useState(null);
   const [returnResult, setReturnResult] = useState({});
+  const [buyingOutrightId, setBuyingOutrightId] = useState(null);
+  const [buyOutrightResult, setBuyOutrightResult] = useState({});
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -101,7 +103,7 @@ export default function AccountPage() {
     if (returningId) return;
     setReturningId(orderId);
     try {
-      const res = await fetch("/api/cancel-subscription", {
+      const res = await fetch("/api/return", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),
@@ -117,6 +119,29 @@ export default function AccountPage() {
       setReturnResult(prev => ({ ...prev, [orderId]: "Something went wrong." }));
     }
     setReturningId(null);
+  }
+
+  async function handleBuyOutright(orderId) {
+    if (buyingOutrightId) return;
+    setBuyingOutrightId(orderId);
+    try {
+      const res = await fetch("/api/buy-outright", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const d = await res.json();
+      if (d.url) { window.location.href = d.url; return; }
+      if (d.ok) {
+        setRentals(prev => prev.filter(r => r.id !== orderId));
+        setBuyOutrightResult(prev => ({ ...prev, [orderId]: d.message }));
+      } else {
+        setBuyOutrightResult(prev => ({ ...prev, [orderId]: d.error ?? "Something went wrong." }));
+      }
+    } catch {
+      setBuyOutrightResult(prev => ({ ...prev, [orderId]: "Something went wrong." }));
+    }
+    setBuyingOutrightId(null);
   }
 
   function copyLink() {
@@ -222,35 +247,74 @@ export default function AccountPage() {
             <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"20px 20px" }}>
               <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:16 }}>My Rentals</h3>
               <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-                {rentals.map(r => (
-                  <div key={r.id} style={{ border:`1px solid ${S.stone}`, padding:"14px 16px" }}>
-                    <div style={{ display:"flex", gap:12, alignItems:"flex-start", marginBottom:10 }}>
-                      <div style={{ width:52, height:52, background:"#f5f3f0", flexShrink:0, overflow:"hidden" }}>
-                        {r.image_url
-                          ? <img src={r.image_url} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"contain" }}/>
-                          : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>👕</div>}
+                {rentals.map(r => {
+                  const savings = r.original_buyout_price && r.current_buyout_price && r.original_buyout_price > r.current_buyout_price
+                    ? ((r.original_buyout_price - r.current_buyout_price) / 100).toFixed(2) : null;
+                  const currentBuyout = r.current_buyout_price ? (r.current_buyout_price / 100).toFixed(2) : null;
+                  const actionResult = returnResult[r.id] || buyOutrightResult[r.id];
+                  return (
+                    <div key={r.id} style={{ border:`1px solid ${S.stone}`, padding:"14px 16px" }}>
+                      <div style={{ display:"flex", gap:12, alignItems:"flex-start", marginBottom:10 }}>
+                        <div style={{ width:52, height:52, background:"#f5f3f0", flexShrink:0, overflow:"hidden" }}>
+                          {r.image_url
+                            ? <img src={r.image_url} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"contain" }}/>
+                            : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>👕</div>}
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <p style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:S.tan, marginBottom:2 }}>{r.brand}</p>
+                          <p style={{ fontFamily:S.serif, fontSize:16, fontWeight:600, color:S.ink, lineHeight:1.2 }}>{r.name}</p>
+                          <p style={{ fontSize:12, color:S.muted, marginTop:4 }}>${(r.amount / 100).toFixed(2)}/mo</p>
+                          {r.next_billing_date && (
+                            <p style={{ fontSize:11, color:S.muted, marginTop:2 }}>Next billing: {formatDate(r.next_billing_date)}</p>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ flex:1 }}>
-                        <p style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:S.tan, marginBottom:2 }}>{r.brand}</p>
-                        <p style={{ fontFamily:S.serif, fontSize:16, fontWeight:600, color:S.ink, lineHeight:1.2 }}>{r.name}</p>
-                        <p style={{ fontSize:12, color:S.muted, marginTop:4 }}>${(r.amount / 100).toFixed(2)}/mo</p>
-                        {r.next_billing_date && (
-                          <p style={{ fontSize:11, color:S.muted, marginTop:2 }}>Next billing: {formatDate(r.next_billing_date)}</p>
-                        )}
-                      </div>
+                      {currentBuyout && (
+                        <div style={{ background:"#f8f6f3", border:`1px solid ${S.stone}`, padding:"10px 12px", marginBottom:10 }}>
+                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                            <span style={{ fontSize:11, color:S.muted }}>Months rented</span>
+                            <span style={{ fontSize:11, fontWeight:600, color:S.ink }}>{r.months_rented ?? 0}</span>
+                          </div>
+                          {r.original_buyout_price && (
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:3 }}>
+                              <span style={{ fontSize:11, color:S.muted }}>Original buyout</span>
+                              <span style={{ fontSize:11, color:S.muted }}>${(r.original_buyout_price / 100).toFixed(2)}</span>
+                            </div>
+                          )}
+                          <div style={{ display:"flex", justifyContent:"space-between", marginBottom: savings ? 6 : 0 }}>
+                            <span style={{ fontSize:11, fontWeight:600, color:S.ink }}>Your buyout</span>
+                            <span style={{ fontSize:13, fontWeight:700, color:S.ink }}>${currentBuyout}</span>
+                          </div>
+                          {savings && (
+                            <p style={{ fontSize:10, color:"#16a34a", lineHeight:1.5 }}>
+                              {r.months_rented} month{r.months_rented !== 1 ? "s" : ""} of renting reduced your buyout by <strong>${savings}</strong>
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {actionResult ? (
+                        <p style={{ fontSize:12, color:"#16a34a", fontWeight:500 }}>{actionResult}</p>
+                      ) : (
+                        <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                          {currentBuyout && (
+                            <button
+                              onClick={() => handleBuyOutright(r.id)}
+                              disabled={buyingOutrightId === r.id}
+                              style={{ width:"100%", background:S.ink, color:S.cream, border:"none", cursor:buyingOutrightId===r.id?"not-allowed":"pointer", padding:"9px 0", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:buyingOutrightId===r.id?0.6:1 }}>
+                              {buyingOutrightId === r.id ? "Processing…" : `Buy Outright — $${currentBuyout}`}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleReturn(r.id)}
+                            disabled={returningId === r.id}
+                            style={{ width:"100%", background:"transparent", color:"#dc2626", border:"1px solid #fca5a5", cursor:returningId===r.id?"not-allowed":"pointer", padding:"9px 0", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:returningId===r.id?0.6:1 }}>
+                            {returningId === r.id ? "Processing…" : "Return Item"}
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    {returnResult[r.id] ? (
-                      <p style={{ fontSize:12, color:"#16a34a", fontWeight:500 }}>{returnResult[r.id]}</p>
-                    ) : (
-                      <button
-                        onClick={() => handleReturn(r.id)}
-                        disabled={returningId === r.id}
-                        style={{ width:"100%", background:"transparent", color:"#dc2626", border:"1px solid #fca5a5", cursor:returningId===r.id?"not-allowed":"pointer", padding:"9px 0", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:returningId===r.id?0.6:1 }}>
-                        {returningId === r.id ? "Processing…" : "Return Item"}
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -460,35 +524,78 @@ export default function AccountPage() {
           <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px", marginBottom:32 }}>
             <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:20 }}>My Rentals</h3>
             <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-              {rentals.map((r, i) => (
-                <div key={r.id} style={{ display:"flex", alignItems:"center", gap:20, padding:"16px 0", borderBottom: i < rentals.length - 1 ? `1px solid ${S.stone}` : "none" }}>
-                  <div style={{ width:60, height:60, background:"#f5f3f0", flexShrink:0, overflow:"hidden" }}>
-                    {r.image_url
-                      ? <img src={r.image_url} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"contain" }}/>
-                      : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>👕</div>}
+              {rentals.map((r, i) => {
+                const savings = r.original_buyout_price && r.current_buyout_price && r.original_buyout_price > r.current_buyout_price
+                  ? ((r.original_buyout_price - r.current_buyout_price) / 100).toFixed(2) : null;
+                const currentBuyout = r.current_buyout_price ? (r.current_buyout_price / 100).toFixed(2) : null;
+                const actionResult = returnResult[r.id] || buyOutrightResult[r.id];
+                return (
+                  <div key={r.id} style={{ padding:"20px 0", borderBottom: i < rentals.length - 1 ? `1px solid ${S.stone}` : "none" }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", gap:20 }}>
+                      <div style={{ width:60, height:60, background:"#f5f3f0", flexShrink:0, overflow:"hidden" }}>
+                        {r.image_url
+                          ? <img src={r.image_url} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"contain" }}/>
+                          : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>👕</div>}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <p style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:S.tan, marginBottom:2 }}>{r.brand}</p>
+                        <p style={{ fontFamily:S.serif, fontSize:17, fontWeight:600, color:S.ink, marginBottom:3 }}>{r.name}</p>
+                        <p style={{ fontFamily:S.serif, fontSize:18, fontWeight:700, color:S.ink }}>
+                          ${(r.amount / 100).toFixed(2)}<span style={{ fontFamily:S.sans, fontSize:11, color:S.muted, fontWeight:400 }}>/mo</span>
+                        </p>
+                        {r.next_billing_date && (
+                          <p style={{ fontSize:11, color:S.muted, marginTop:3 }}>Next billing: {formatDate(r.next_billing_date)}</p>
+                        )}
+                        {currentBuyout && (
+                          <div style={{ background:"#f8f6f3", border:`1px solid ${S.stone}`, padding:"10px 14px", marginTop:12, display:"inline-flex", flexDirection:"column", gap:3, minWidth:260 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", gap:32 }}>
+                              <span style={{ fontSize:11, color:S.muted }}>Months rented</span>
+                              <span style={{ fontSize:11, fontWeight:600, color:S.ink }}>{r.months_rented ?? 0}</span>
+                            </div>
+                            {r.original_buyout_price && (
+                              <div style={{ display:"flex", justifyContent:"space-between", gap:32 }}>
+                                <span style={{ fontSize:11, color:S.muted }}>Original buyout</span>
+                                <span style={{ fontSize:11, color:S.muted }}>${(r.original_buyout_price / 100).toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div style={{ display:"flex", justifyContent:"space-between", gap:32 }}>
+                              <span style={{ fontSize:11, fontWeight:600, color:S.ink }}>Your buyout price</span>
+                              <span style={{ fontSize:13, fontWeight:700, color:S.ink }}>${currentBuyout}</span>
+                            </div>
+                            {savings && (
+                              <p style={{ fontSize:10, color:"#16a34a", marginTop:2 }}>
+                                {r.months_rented} month{r.months_rented !== 1 ? "s" : ""} of renting reduced your buyout by <strong>${savings}</strong>
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display:"flex", flexDirection:"column", gap:8, alignItems:"flex-end", flexShrink:0, paddingTop:4 }}>
+                        {actionResult ? (
+                          <p style={{ fontSize:12, color:"#16a34a", fontWeight:500, maxWidth:220, textAlign:"right" }}>{actionResult}</p>
+                        ) : (
+                          <>
+                            {currentBuyout && (
+                              <button
+                                onClick={() => handleBuyOutright(r.id)}
+                                disabled={buyingOutrightId === r.id}
+                                style={{ background:S.ink, color:S.cream, border:"none", cursor:buyingOutrightId===r.id?"not-allowed":"pointer", padding:"8px 20px", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:buyingOutrightId===r.id?0.6:1, whiteSpace:"nowrap" }}>
+                                {buyingOutrightId === r.id ? "Processing…" : `Buy Outright — $${currentBuyout}`}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleReturn(r.id)}
+                              disabled={returningId === r.id}
+                              style={{ background:"transparent", color:"#dc2626", border:"1px solid #fca5a5", cursor:returningId===r.id?"not-allowed":"pointer", padding:"7px 18px", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:returningId===r.id?0.6:1 }}>
+                              {returningId === r.id ? "Processing…" : "Return Item"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ flex:1 }}>
-                    <p style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:S.tan, marginBottom:2 }}>{r.brand}</p>
-                    <p style={{ fontFamily:S.serif, fontSize:17, fontWeight:600, color:S.ink }}>{r.name}</p>
-                    {r.next_billing_date && (
-                      <p style={{ fontSize:11, color:S.muted, marginTop:3 }}>Next billing: {formatDate(r.next_billing_date)}</p>
-                    )}
-                  </div>
-                  <div style={{ textAlign:"right", flexShrink:0 }}>
-                    <p style={{ fontFamily:S.serif, fontSize:20, fontWeight:700, color:S.ink, marginBottom:6 }}>${(r.amount / 100).toFixed(2)}<span style={{ fontFamily:S.sans, fontSize:11, color:S.muted, fontWeight:400 }}>/mo</span></p>
-                    {returnResult[r.id] ? (
-                      <p style={{ fontSize:12, color:"#16a34a", fontWeight:500, maxWidth:200, textAlign:"right" }}>{returnResult[r.id]}</p>
-                    ) : (
-                      <button
-                        onClick={() => handleReturn(r.id)}
-                        disabled={returningId === r.id}
-                        style={{ background:"transparent", color:"#dc2626", border:"1px solid #fca5a5", cursor:returningId===r.id?"not-allowed":"pointer", padding:"7px 18px", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:returningId===r.id?0.6:1 }}>
-                        {returningId === r.id ? "Processing…" : "Return Item"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

@@ -1540,14 +1540,29 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy, isMobile=fa
 }
 
 // ─── ITEM DETAIL ──────────────────────────────────────────────────────────────
-function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy }) {
+function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy, rentals=[] }) {
   const item=items.find(i=>i.id===itemId);
   const [inSuitcase,setInSuitcase]=useState(suitcase.some(s=>s.id===itemId));
   const [imgErr,setImgErr]=useState(false);
+  const [buyingOut,setBuyingOut]=useState(false);
+  const [buyOutMsg,setBuyOutMsg]=useState("");
   if(!item) return <div style={{ padding:"120px 40px" }}><h2>Item not found</h2></div>;
 
   const monthlyPrice=getMonthlyPrice(item);
   const buyPrice=getBuyPrice(item);
+  const rental = item._dbId ? rentals.find(r => r.inventory_id === item._dbId) : null;
+
+  async function handleBuyOutrightDetail() {
+    if (!rental || buyingOut) return;
+    setBuyingOut(true); setBuyOutMsg("");
+    try {
+      const res = await fetch("/api/buy-outright", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ orderId: rental.id }) });
+      const d = await res.json();
+      if (d.url) { window.location.href = d.url; return; }
+      setBuyOutMsg(d.message ?? d.error ?? "Something went wrong.");
+    } catch { setBuyOutMsg("Something went wrong."); }
+    setBuyingOut(false);
+  }
   const related=items.filter(i=>i.id!==item.id&&(i.style===item.style||i.occasion===item.occasion)).slice(0,3);
 
   return (
@@ -1585,6 +1600,45 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
               </div>
               <p style={{ fontFamily:S.sans,fontSize:11,color:S.muted,marginTop:10 }}>Every item is inspected and verified before it ships.</p>
             </div>
+
+            {/* Active rental panel */}
+            {rental && (
+              <div style={{ background:"#f0fdf4",border:"1px solid #bbf7d0",padding:"18px 20px",marginBottom:16 }}>
+                <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:"#16a34a",marginBottom:8,fontWeight:600 }}>You're renting this piece</p>
+                <div style={{ display:"flex",flexDirection:"column",gap:4,marginBottom:10 }}>
+                  <div style={{ display:"flex",justifyContent:"space-between" }}>
+                    <span style={{ fontFamily:S.sans,fontSize:12,color:S.muted }}>Months rented</span>
+                    <span style={{ fontFamily:S.sans,fontSize:12,fontWeight:600,color:S.ink }}>{rental.months_rented ?? 0}</span>
+                  </div>
+                  {rental.original_buyout_price && (
+                    <div style={{ display:"flex",justifyContent:"space-between" }}>
+                      <span style={{ fontFamily:S.sans,fontSize:12,color:S.muted }}>Original buyout</span>
+                      <span style={{ fontFamily:S.sans,fontSize:12,color:S.muted }}>${(rental.original_buyout_price/100).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {rental.current_buyout_price && (
+                    <div style={{ display:"flex",justifyContent:"space-between" }}>
+                      <span style={{ fontFamily:S.sans,fontSize:12,fontWeight:600,color:S.ink }}>Your buyout price</span>
+                      <span style={{ fontFamily:S.serif,fontSize:18,fontWeight:700,color:S.ink }}>${(rental.current_buyout_price/100).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                {rental.original_buyout_price && rental.current_buyout_price && rental.original_buyout_price > rental.current_buyout_price && (
+                  <p style={{ fontFamily:S.sans,fontSize:11,color:"#16a34a",marginBottom:12 }}>
+                    {rental.months_rented} month{rental.months_rented !== 1 ? "s" : ""} of renting has reduced your buyout by <strong>${((rental.original_buyout_price - rental.current_buyout_price)/100).toFixed(2)}</strong>
+                  </p>
+                )}
+                {buyOutMsg ? (
+                  <p style={{ fontFamily:S.sans,fontSize:12,color:"#16a34a",fontWeight:500 }}>{buyOutMsg}</p>
+                ) : rental.current_buyout_price && (
+                  <button onClick={handleBuyOutrightDetail} disabled={buyingOut}
+                    style={{ width:"100%",background:"#16a34a",color:"#fff",border:"none",cursor:buyingOut?"not-allowed":"pointer",padding:"11px",fontFamily:S.sans,fontSize:12,fontWeight:700,letterSpacing:"0.08em",textTransform:"uppercase",opacity:buyingOut?0.7:1 }}>
+                    {buyingOut ? "Processing…" : `Buy Outright — $${(rental.current_buyout_price/100).toFixed(2)}`}
+                  </button>
+                )}
+              </div>
+            )}
+
             <button onClick={()=>{ addToSuitcase(item); setInSuitcase(true); }} style={{ width:"100%",background:inSuitcase?"#f0ede8":S.ink,color:inSuitcase?"#6b5e4e":S.cream,border:"none",cursor:inSuitcase?"default":"pointer",padding:"16px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>
               {inSuitcase?"✓ In Your Suitcase":"Add to Suitcase"}
             </button>
@@ -1755,13 +1809,17 @@ function QuizPage({ setPage, setStyleProfile }) {
 }
 
 // ─── SUITCASE ─────────────────────────────────────────────────────────────────
-function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
+function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items, rentals=[] }) {
   const { isSignedIn, isLoaded } = useUser();
   const [subscribing, setSubscribing] = useState(false);
   const [subscribeError, setSubscribeError] = useState("");
-  const total = suitcase.reduce((s, i) => s + getMonthlyPrice(i), 0);
+  const totalMonthly = suitcase.reduce((s, i) => s + getMonthlyPrice(i), 0);
+  // legacy alias used in summary panel
+  const total = totalMonthly;
   const dbItems = suitcase.filter(i => i._dbId);
   const totalDeposit = dbItems.reduce((s, i) => s + i.buyPrice, 0);
+  const totalFirstMonth = dbItems.reduce((s, i) => s + getMonthlyPrice(i), 0);
+  const totalDueToday = totalFirstMonth + totalDeposit;
 
   async function handleSubscribe() {
     if (!dbItems.length) { setSubscribeError("Add items from the catalog to start your subscription."); return; }
@@ -1806,27 +1864,46 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
 
         <div style={{ display:"grid",gridTemplateColumns:"1fr 340px",gap:40,alignItems:"start" }}>
           <div style={{ display:"flex",flexDirection:"column",gap:14 }}>
-            {suitcase.map(item=>(
-              <div key={item.id} style={{ background:"#fff",border:`1px solid ${S.stone}` }}>
-                {/* Item row */}
-                <div style={{ display:"flex",alignItems:"center",gap:20,padding:"18px 22px" }}>
-                  <div style={{ width:64,height:64,background:item.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0 }}>{item.emoji}</div>
-                  <div style={{ flex:1 }}>
-                    <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:2 }}>{item.brand}</p>
-                    <h3 style={{ fontFamily:S.serif,fontSize:19,fontWeight:600,color:S.ink }}>{item.name}</h3>
+            {suitcase.map(item=>{
+              const monthlyPrice = getMonthlyPrice(item);
+              const depositAmt = item._dbId ? item.buyPrice : 0;
+              const dueToday = item._dbId ? (monthlyPrice + depositAmt) : monthlyPrice;
+              const [imgErr, setImgErr] = useState(false);
+              const showImg = item.image_url && !imgErr;
+              return (
+                <div key={item.id} style={{ background:"#fff",border:`1px solid ${S.stone}` }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:16,padding:"16px 20px" }}>
+                    {/* Photo */}
+                    <div style={{ width:72,height:72,background:showImg?"#f5f3f0":item.color,flexShrink:0,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28 }}>
+                      {showImg
+                        ? <img src={item.image_url} alt={item.name} onError={()=>setImgErr(true)} style={{ width:"100%",height:"100%",objectFit:"contain",display:"block" }}/>
+                        : (item.emoji || "👕")}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex:1,minWidth:0 }}>
+                      <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:2 }}>{item.brand}</p>
+                      <h3 style={{ fontFamily:S.serif,fontSize:17,fontWeight:600,color:S.ink,marginBottom:6,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{item.name}</h3>
+                      <div style={{ display:"flex",gap:14,flexWrap:"wrap" }}>
+                        <span style={{ fontFamily:S.sans,fontSize:11,color:S.muted }}>${monthlyPrice.toFixed(2)}/mo</span>
+                        {item._dbId && <span style={{ fontFamily:S.sans,fontSize:11,color:S.tan }}>+${depositAmt} deposit hold</span>}
+                      </div>
+                    </div>
+                    {/* Total due today for this item */}
+                    {item._dbId && (
+                      <div style={{ textAlign:"right",flexShrink:0 }}>
+                        <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginBottom:2,letterSpacing:"0.08em",textTransform:"uppercase" }}>Due today</p>
+                        <p style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${dueToday.toFixed(2)}</p>
+                      </div>
+                    )}
                   </div>
-                  <div style={{ textAlign:"right",flexShrink:0 }}>
-                    <div style={{ fontFamily:S.serif,fontSize:22,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></div>
+                  <div style={{ display:"flex",borderTop:`1px solid ${S.stone}` }}>
+                    <button onClick={()=>removeFromSuitcase(item.id)} style={{ flex:1,background:"transparent",color:"#ef4444",border:"none",cursor:"pointer",padding:"9px 0",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.07em",textTransform:"uppercase" }}>
+                      ✕ Remove
+                    </button>
                   </div>
                 </div>
-                {/* Action row */}
-                <div style={{ display:"flex",borderTop:`1px solid ${S.stone}` }}>
-                  <button onClick={()=>removeFromSuitcase(item.id)} style={{ flex:1,background:"transparent",color:"#ef4444",border:"none",cursor:"pointer",padding:"9px 0",fontFamily:S.sans,fontSize:10,fontWeight:600,letterSpacing:"0.07em",textTransform:"uppercase" }}>
-                    ✕ Remove
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Summary panel */}
@@ -1867,6 +1944,17 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
                   <span style={{ fontFamily:S.sans,fontSize:11,fontWeight:600,color:S.cream }}>${totalDeposit}</span>
                 </div>
                 <p style={{ fontFamily:S.sans,fontSize:10,color:"#4b5563",marginTop:8,lineHeight:1.6 }}>Authorized on your card — not charged. Released automatically when items are returned.</p>
+              </div>
+            )}
+
+            {/* Total due today */}
+            {dbItems.length > 0 && (
+              <div style={{ borderTop:"1px solid #1f2937",paddingTop:14,marginBottom:20 }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline" }}>
+                  <span style={{ fontFamily:S.sans,fontSize:13,fontWeight:600,color:S.cream }}>Due Today</span>
+                  <span style={{ fontFamily:S.serif,fontSize:28,fontWeight:700,color:S.gold }}>${(Math.round(totalDueToday*100)/100).toFixed(2)}</span>
+                </div>
+                <p style={{ fontFamily:S.sans,fontSize:10,color:"#6b7280",marginTop:4 }}>First month + security deposit hold</p>
               </div>
             )}
 
@@ -2400,6 +2488,7 @@ function Footer({ setPage }) {
 // ─── APP ──────────────────────────────────────────────────────────────────────
 export default function App() {
   const isMobile = useMobile();
+  const { isSignedIn } = useUser();
   const [page,setPage]=useState("home");
   const [suitcase,setSuitcase]=useState([]);
   const [styleProfile,setStyleProfile]=useState([]);
@@ -2407,6 +2496,7 @@ export default function App() {
   const [items,setItems]=useState([]);
   const [loadingItems,setLoadingItems]=useState(true);
   const [buying,setBuying]=useState(null);
+  const [rentals,setRentals]=useState([]);
 
   useEffect(()=>{
     fetch("/api/inventory")
@@ -2415,6 +2505,11 @@ export default function App() {
       .catch(()=>{ setItems([]); })
       .finally(()=>{ setLoadingItems(false); });
   },[]);
+
+  useEffect(()=>{
+    if(!isSignedIn) return;
+    fetch("/api/rentals").then(r=>r.json()).then(d=>{ setRentals(Array.isArray(d)?d:[]); }).catch(()=>{});
+  },[isSignedIn]);
 
   async function handleBuy(item) {
     if(!item._dbId||buying) return;
@@ -2441,13 +2536,13 @@ export default function App() {
     if(page==="home")          return <HomePage setPage={nav} items={items} loadingItems={loadingItems}/>;
     if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy} loading={loadingItems}/>;
     if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items}/>;
-    if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items}/>;
+    if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items} rentals={rentals}/>;
     if(page==="community")     return <CommunityPage setPage={nav}/>;
     if(page==="sustainability") return <SustainabilityPage/>;
     if(page==="auth-signup")   return <AuthPage mode="signup" setIsLoggedIn={setIsLoggedIn} setPage={setPage}/>;
     if(page==="auth-login")    return <AuthPage mode="login"  setIsLoggedIn={setIsLoggedIn} setPage={setPage}/>;
     if(page==="auth-gate")     return <AuthGatePage setPage={setPage}/>;
-    if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy}/>;
+    if(page.startsWith("item-")) return <ItemDetailPage itemId={parseInt(page.replace("item-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy} rentals={rentals}/>;
     if(page.startsWith("wardrobe-db-")) return <DbWardrobeDetailPage wardrobeId={parseInt(page.replace("wardrobe-db-",""))} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items}/>;
     if(page.startsWith("wardrobe-")) return <WardrobeDetailPage wardrobeId={page.replace("wardrobe-","")} setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
     return <HomePage setPage={nav}/>;
