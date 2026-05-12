@@ -216,9 +216,8 @@ function Nav({ page, setPage, suitcase }) {
   useEffect(() => { setMenuOpen(false); }, [page]);
 
   const navLinks = [
-    ["wardrobes","Shop Wardrobes"],
+    ["wardrobes","Wardrobes"],
     ["browse","Shop Pieces"],
-    ["quiz","Find My Style"],
     ["community","Community"],
     ["sustainability","Our Mission"],
   ];
@@ -354,9 +353,8 @@ function HomePage({ setPage }) {
           </p>
           <p style={{ fontFamily:S.sans,fontSize:13,color:S.tan,marginBottom:44,fontStyle:"italic" }}>Discover. Wear. Own.</p>
           <div style={{ display:"flex",gap:14,flexWrap:"wrap" }}>
-            <button onClick={()=>setPage("wardrobes")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Shop Wardrobes</button>
+            <button onClick={()=>setPage("wardrobes")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Wardrobes</button>
             <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Shop Pieces</button>
-            <button onClick={()=>setPage("quiz")} style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Find My Style</button>
           </div>
         </div>
         <div style={{ position:"absolute",bottom:44,left:40,display:"flex",gap:52 }}>
@@ -460,7 +458,7 @@ function HomePage({ setPage }) {
             {[
               { page:"browse",    num:"01", title:"Shop by Piece",    desc:"Know what you want. Browse the full catalog, filter by garment type, occasion, or season, and build your Suitcase piece by piece.",    cta:"Browse Pieces",    bg:"#fff" },
               { page:"wardrobes", num:"02", title:"Shop by Wardrobe", desc:"Want someone to just tell you what to wear? Pick a curated wardrobe built around a season and a vibe. Take the whole thing or pick what you love.", cta:"Browse Wardrobes", bg:S.cream },
-              { page:"quiz",      num:"03", title:"Shop by Style",    desc:"Not sure where your style lives yet? Swipe through aesthetics and we'll match you with pieces and wardrobes that fit who you want to be.",   cta:"Take the Quiz",    bg:"#fff" },
+              { page:"wardrobes", num:"03", title:"Shop by Style",    desc:"Not sure where your style lives yet? Swipe through aesthetics and we'll match you with pieces and wardrobes that fit who you want to be.",   cta:"Find My Style",    bg:"#fff" },
               { page:"community", num:"04", title:"Shop the Community",desc:"See how real Davenport members wear their pieces. Browse fits from guys at your school and shop directly from what you see.",              cta:"See the Community",bg:S.cream },
             ].map(({page,num,title,desc,cta,bg})=>(
               <div key={num} style={{ background:bg,padding:"36px 28px",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:320 }}>
@@ -525,7 +523,7 @@ function HomePage({ setPage }) {
           <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:"#6b5e4e",marginBottom:20 }}>Style Discovery</p>
           <h2 style={{ fontFamily:S.serif,fontSize:"clamp(34px, 5vw, 58px)",fontWeight:600,color:S.cream,letterSpacing:"-1.5px",marginBottom:20 }}>Don't know where to start?</h2>
           <p style={{ fontFamily:S.sans,fontSize:16,color:"#9ca3af",marginBottom:40,lineHeight:1.75 }}>Swipe through styles. We'll build your taste profile and surface the pieces that match how you want to be seen.</p>
-          <button onClick={()=>setPage("quiz")} style={{ background:S.cream,color:S.ink,border:"none",cursor:"pointer",padding:"16px 44px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>Take the Style Quiz</button>
+          <button onClick={()=>setPage("wardrobes")} style={{ background:S.cream,color:S.ink,border:"none",cursor:"pointer",padding:"16px 44px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>Find My Style</button>
         </div>
       </section>
 
@@ -665,8 +663,54 @@ function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, onCardClick, d
 }
 
 // ─── WARDROBES PAGE ───────────────────────────────────────────────────────────
+function InlineStyleQuiz({ onComplete }) {
+  const [index, setIndex] = useState(0);
+  const [liked, setLiked] = useState([]);
+  const [animDir, setAnimDir] = useState(null);
+
+  function swipe(dir) {
+    setAnimDir(dir);
+    setTimeout(() => {
+      const newLiked = dir === "right" ? [...liked, SWIPE_ITEMS[index].id] : liked;
+      if (index + 1 >= SWIPE_ITEMS.length) {
+        onComplete(newLiked);
+      } else {
+        setLiked(newLiked);
+        setIndex(i => i + 1);
+        setAnimDir(null);
+      }
+    }, 280);
+  }
+
+  const current = SWIPE_ITEMS[index];
+  return (
+    <section style={{ background:S.ink, padding:"80px 40px" }}>
+      <div style={{ maxWidth:480, margin:"0 auto", textAlign:"center" }}>
+        <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:"#6b5e4e", marginBottom:12 }}>Style Discovery</p>
+        <h2 style={{ fontFamily:S.serif, fontSize:40, fontWeight:600, color:S.cream, letterSpacing:"-1px", marginBottom:8 }}>What speaks to you?</h2>
+        <p style={{ fontFamily:S.sans, fontSize:14, color:"#6b7280", marginBottom:44 }}>{index + 1} of {SWIPE_ITEMS.length}</p>
+        <div style={{ background:"#fff", border:"1px solid #1f2937", padding:"44px 36px", textAlign:"center", transition:"transform 0.28s, opacity 0.28s", transform:animDir==="left"?"translateX(-120px) rotate(-8deg)":animDir==="right"?"translateX(120px) rotate(8deg)":"none", opacity:animDir?0:1 }}>
+          <div style={{ fontSize:56, marginBottom:20 }}>{current.emoji}</div>
+          <h3 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:8 }}>{current.label}</h3>
+          <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted }}>{current.desc}</p>
+        </div>
+        <div style={{ display:"flex", gap:24, justifyContent:"center", marginTop:36 }}>
+          <button onClick={()=>swipe("left")} style={{ width:56, height:56, borderRadius:"50%", background:"#1f2937", border:"1px solid #374151", cursor:"pointer", fontSize:20, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>✕</button>
+          <button onClick={()=>swipe("right")} style={{ width:56, height:56, borderRadius:"50%", background:S.gold, border:"none", cursor:"pointer", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>♥</button>
+        </div>
+        <div style={{ display:"flex", gap:5, justifyContent:"center", marginTop:28 }}>
+          {SWIPE_ITEMS.map((_,i) => (
+            <div key={i} style={{ width:24, height:3, background:i<=index?"#c4a882":"#1f2937", borderRadius:2, transition:"background 0.2s" }}/>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
   const [seasonFilter, setSeasonFilter] = useState("All");
+  const [quizDone, setQuizDone] = useState(false);
   const { isSignedIn } = useUser();
   const { openSignIn } = useClerk();
   const seasons = ["All","Fall/Winter","Spring/Summer"];
@@ -677,42 +721,56 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
     else openSignIn();
   }
 
-  function handleFindMyStyle() {
-    if (isSignedIn) setPage("quiz");
-    else openSignIn();
+  function handleQuizComplete() {
+    if (isSignedIn) {
+      setQuizDone(true);
+    } else {
+      openSignIn();
+    }
   }
 
   return (
-    <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
-      <div style={{ padding:"52px 40px 36px",background:"#fff",borderBottom:`1px solid ${S.stone}` }}>
-        <div style={{ maxWidth:1080,margin:"0 auto" }}>
-          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:10 }}>Curated by Davenport</p>
-          <h1 style={{ fontFamily:S.serif,fontSize:48,fontWeight:600,letterSpacing:"-1.5px",color:S.ink,marginBottom:14 }}>Shop by Wardrobe.</h1>
-          <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,maxWidth:520,marginBottom:32 }}>Each wardrobe is a full seasonal collection built around a vibe. Take the whole thing or browse the pieces and pick what you want.</p>
-          <div style={{ display:"flex",gap:6 }}>
+    <div style={{ paddingTop:60, minHeight:"100vh", background:S.cream }}>
+      <div style={{ padding:"52px 40px 36px", background:"#fff", borderBottom:`1px solid ${S.stone}` }}>
+        <div style={{ maxWidth:1080, margin:"0 auto" }}>
+          <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10 }}>Curated by Davenport</p>
+          <h1 style={{ fontFamily:S.serif, fontSize:48, fontWeight:600, letterSpacing:"-1.5px", color:S.ink, marginBottom:14 }}>Wardrobes.</h1>
+          <p style={{ fontFamily:S.sans, fontSize:16, color:S.muted, maxWidth:520, marginBottom:32 }}>Each wardrobe is a full seasonal collection built around a vibe. Take the whole thing or browse the pieces and pick what you want.</p>
+          <div style={{ display:"flex", gap:6 }}>
             {seasons.map(s=>(
-              <button key={s} onClick={()=>setSeasonFilter(s)} style={{ background:seasonFilter===s?S.ink:"#fff",color:seasonFilter===s?S.cream:S.muted,border:`1px solid ${seasonFilter===s?S.ink:S.stone}`,padding:"6px 16px",fontFamily:S.sans,fontSize:11,fontWeight:500,letterSpacing:"0.06em",cursor:"pointer",textTransform:"uppercase" }}>{s}</button>
+              <button key={s} onClick={()=>setSeasonFilter(s)} style={{ background:seasonFilter===s?S.ink:"#fff", color:seasonFilter===s?S.cream:S.muted, border:`1px solid ${seasonFilter===s?S.ink:S.stone}`, padding:"6px 16px", fontFamily:S.sans, fontSize:11, fontWeight:500, letterSpacing:"0.06em", cursor:"pointer", textTransform:"uppercase" }}>{s}</button>
             ))}
           </div>
         </div>
       </div>
-      <div style={{ maxWidth:1080,margin:"0 auto",padding:"40px 40px 64px" }}>
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:28 }}>
+
+      <div style={{ maxWidth:1080, margin:"0 auto", padding:"40px 40px 80px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:28 }}>
           {filtered.map(w=>{
             const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
             const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
             return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={handleCardClick}/>;
           })}
         </div>
-        <div style={{ marginTop:56,textAlign:"center",borderTop:`1px solid ${S.stone}`,paddingTop:52 }}>
-          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Not sure where to start?</p>
-          <h2 style={{ fontFamily:S.serif,fontSize:36,fontWeight:600,color:S.ink,letterSpacing:"-0.5px",marginBottom:14 }}>Find your style in 2 minutes.</h2>
-          <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,marginBottom:32,maxWidth:420,margin:"0 auto 32px" }}>Swipe through aesthetics and we'll match you to the wardrobes that fit who you want to be.</p>
-          <button onClick={handleFindMyStyle} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"14px 40px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>
-            Find My Style
-          </button>
-        </div>
       </div>
+
+      {!quizDone ? (
+        <InlineStyleQuiz onComplete={handleQuizComplete}/>
+      ) : (
+        <section style={{ background:S.cream, borderTop:`1px solid ${S.stone}`, padding:"72px 40px 80px" }}>
+          <div style={{ maxWidth:1080, margin:"0 auto" }}>
+            <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:12 }}>Your Style Matches</p>
+            <h2 style={{ fontFamily:S.serif, fontSize:44, fontWeight:600, color:S.ink, letterSpacing:"-1px", marginBottom:36 }}>We know your vibe.</h2>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:24 }}>
+              {WARDROBES.slice(0,3).map(w=>{
+                const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
+                const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
+                return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={handleCardClick}/>;
+              })}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -1226,7 +1284,7 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
       <p style={{ fontFamily:S.sans,fontSize:16,color:S.muted,marginBottom:36 }}>Start adding pieces, or let us build a wardrobe for you.</p>
       <div style={{ display:"flex",gap:12 }}>
         <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"14px 36px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase" }}>Browse Pieces</button>
-        <button onClick={()=>setPage("wardrobes")} style={{ background:"transparent",color:S.ink,border:`1px solid ${S.ink}`,cursor:"pointer",padding:"14px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Shop Wardrobes</button>
+        <button onClick={()=>setPage("wardrobes")} style={{ background:"transparent",color:S.ink,border:`1px solid ${S.ink}`,cursor:"pointer",padding:"14px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Wardrobes</button>
       </div>
     </div>
   );
@@ -1603,7 +1661,7 @@ function Footer({ setPage }) {
           </div>
         </div>
         <div style={{ display:"flex",gap:56,flexWrap:"wrap" }}>
-          {[["Shop",[["browse","Shop Pieces"],["wardrobes","Shop Wardrobes"],["quiz","Find My Style"],["community","Community"]]],["Company",[["sustainability","Our Mission"]]]].map(([col,links])=>(
+          {[["Shop",[["browse","Shop Pieces"],["wardrobes","Wardrobes"],["community","Community"]]],["Company",[["sustainability","Our Mission"]]]].map(([col,links])=>(
             <div key={col}>
               <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.16em",textTransform:"uppercase",color:"#4b5563",marginBottom:14 }}>{col}</p>
               {links.map(([p,label])=>(
@@ -1664,7 +1722,6 @@ export default function App() {
     if(page==="home")          return <HomePage setPage={nav}/>;
     if(page==="browse")        return <BrowsePage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase} items={items} onBuy={handleBuy} loading={loadingItems}/>;
     if(page==="wardrobes")     return <WardrobesPage setPage={nav} addToSuitcase={addToSuitcase} suitcase={suitcase}/>;
-    if(page==="quiz")          return <QuizPage setPage={nav} setStyleProfile={setStyleProfile}/>;
     if(page==="suitcase")      return <SuitcasePage suitcase={suitcase} removeFromSuitcase={removeFromSuitcase} setPage={nav} items={items}/>;
     if(page==="community")     return <CommunityPage setPage={nav}/>;
     if(page==="sustainability") return <SustainabilityPage/>;
@@ -1681,7 +1738,7 @@ export default function App() {
       <style>{FONTS}{`*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#faf9f7;-webkit-font-smoothing:antialiased}button:focus,input:focus{outline:none}`}</style>
       <Nav page={page} setPage={nav} suitcase={suitcase}/>
       {render()}
-      {page!=="quiz"&&<Footer setPage={nav}/>}
+      <Footer setPage={nav}/>
     </>
   );
 }
