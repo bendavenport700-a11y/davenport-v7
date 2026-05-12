@@ -1757,7 +1757,28 @@ function QuizPage({ setPage, setStyleProfile }) {
 // ─── SUITCASE ─────────────────────────────────────────────────────────────────
 function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
   const { isSignedIn, isLoaded } = useUser();
-  const total=suitcase.reduce((s,i)=>s+getMonthlyPrice(i),0);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeError, setSubscribeError] = useState("");
+  const total = suitcase.reduce((s, i) => s + getMonthlyPrice(i), 0);
+  const dbItems = suitcase.filter(i => i._dbId);
+  const totalDeposit = dbItems.reduce((s, i) => s + i.buyPrice, 0);
+
+  async function handleSubscribe() {
+    if (!dbItems.length) { setSubscribeError("Add items from the catalog to start your subscription."); return; }
+    setSubscribing(true);
+    setSubscribeError("");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemIds: dbItems.map(i => i._dbId) }),
+      });
+      const data = await res.json();
+      if (data.url) { window.location.href = data.url; return; }
+      setSubscribeError(data.error ?? "Something went wrong.");
+    } catch { setSubscribeError("Something went wrong. Please try again."); }
+    setSubscribing(false);
+  }
 
   if (!isLoaded) return null;
   if (!isSignedIn) return <AuthGate />;
@@ -1810,28 +1831,66 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
 
           {/* Summary panel */}
           <div style={{ background:S.ink,padding:"36px 32px",position:"sticky",top:80 }}>
-            <h2 style={{ fontFamily:S.serif,fontSize:26,fontWeight:600,color:S.cream,marginBottom:28 }}>Monthly Total</h2>
-            <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:24 }}>
+            <h2 style={{ fontFamily:S.serif,fontSize:26,fontWeight:600,color:S.cream,marginBottom:6 }}>Monthly Total</h2>
+            <p style={{ fontFamily:S.sans,fontSize:11,color:"#6b7280",marginBottom:24,letterSpacing:"0.04em" }}>Billed monthly · cancel any time</p>
+
+            {/* Per-item breakdown */}
+            <div style={{ display:"flex",flexDirection:"column",gap:8,marginBottom:20 }}>
               {suitcase.map(item=>(
-                <div key={item.id} style={{ display:"flex",justifyContent:"space-between" }}>
-                  <span style={{ fontFamily:S.sans,fontSize:12,color:"#9ca3af" }}>{item.name}</span>
-                  <span style={{ fontFamily:S.sans,fontSize:12,color:S.cream }}>${getMonthlyPrice(item).toFixed(2)}</span>
+                <div key={item.id} style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline" }}>
+                  <span style={{ fontFamily:S.sans,fontSize:12,color:"#9ca3af",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{item.name}</span>
+                  <span style={{ fontFamily:S.sans,fontSize:12,color:S.cream,flexShrink:0 }}>${getMonthlyPrice(item).toFixed(2)}/mo</span>
                 </div>
               ))}
             </div>
-            <div style={{ borderTop:"1px solid #1f2937",paddingTop:20,marginBottom:28 }}>
+
+            {/* Monthly total */}
+            <div style={{ borderTop:"1px solid #1f2937",paddingTop:16,marginBottom:20 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline" }}>
-                <span style={{ fontFamily:S.sans,fontSize:14,fontWeight:600,color:S.cream }}>Total / month</span>
-                <span style={{ fontFamily:S.serif,fontSize:30,fontWeight:700,color:S.cream }}>${(Math.round(total*100)/100).toFixed(2)}</span>
+                <span style={{ fontFamily:S.sans,fontSize:13,fontWeight:600,color:S.cream }}>Total / month</span>
+                <span style={{ fontFamily:S.serif,fontSize:28,fontWeight:700,color:S.cream }}>${(Math.round(total*100)/100).toFixed(2)}</span>
               </div>
             </div>
-            <button style={{ width:"100%",background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:12 }}>
-              Checkout Create Account
-            </button>
-            <p style={{ fontFamily:S.sans,fontSize:11,color:"#4b5563",textAlign:"center",marginBottom:16 }}>Wear monthly or buy outright your choice.</p>
-            <div style={{ borderTop:"1px solid #1f2937",paddingTop:16 }}>
-              <p style={{ fontFamily:S.sans,fontSize:10,color:"#374151",textAlign:"center",lineHeight:1.6 }}>Want to keep a piece forever? Buy it from your Suitcase at checkout.</p>
+
+            {/* Deposit info */}
+            {dbItems.length > 0 && (
+              <div style={{ background:"#111",border:"1px solid #1f2937",padding:"14px 16px",marginBottom:20 }}>
+                <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:6 }}>Security Deposit</p>
+                {dbItems.map(item=>(
+                  <div key={item.id} style={{ display:"flex",justifyContent:"space-between",marginBottom:4 }}>
+                    <span style={{ fontFamily:S.sans,fontSize:11,color:"#6b7280",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:150 }}>{item.name}</span>
+                    <span style={{ fontFamily:S.sans,fontSize:11,color:"#9ca3af",flexShrink:0 }}>${item.buyPrice}</span>
+                  </div>
+                ))}
+                <div style={{ borderTop:"1px solid #1f2937",paddingTop:8,marginTop:6,display:"flex",justifyContent:"space-between" }}>
+                  <span style={{ fontFamily:S.sans,fontSize:11,fontWeight:600,color:"#9ca3af" }}>Total held</span>
+                  <span style={{ fontFamily:S.sans,fontSize:11,fontWeight:600,color:S.cream }}>${totalDeposit}</span>
+                </div>
+                <p style={{ fontFamily:S.sans,fontSize:10,color:"#4b5563",marginTop:8,lineHeight:1.6 }}>Authorized on your card — not charged. Released automatically when items are returned.</p>
+              </div>
+            )}
+
+            {/* Return policy note */}
+            <div style={{ background:"#111",border:"1px solid #1f2937",padding:"12px 14px",marginBottom:20 }}>
+              <p style={{ fontFamily:S.sans,fontSize:10,color:"#6b7280",lineHeight:1.7 }}>
+                Return early? You'll be refunded for unused days in the current billing period — automatically, no questions asked.
+              </p>
             </div>
+
+            {subscribeError && (
+              <p style={{ fontFamily:S.sans,fontSize:11,color:"#ef4444",marginBottom:12,textAlign:"center" }}>{subscribeError}</p>
+            )}
+
+            <button
+              onClick={handleSubscribe}
+              disabled={subscribing}
+              style={{ width:"100%",background:subscribing?"#4b5563":S.gold,color:S.ink,border:"none",cursor:subscribing?"not-allowed":"pointer",padding:"15px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10,transition:"background 0.2s",opacity:subscribing?0.8:1 }}>
+              {subscribing ? "Redirecting…" : dbItems.length > 0 ? "Start Monthly Rental" : "Checkout"}
+            </button>
+
+            <p style={{ fontFamily:S.sans,fontSize:10,color:"#374151",textAlign:"center",lineHeight:1.6 }}>
+              Powered by Stripe · SSL secured
+            </p>
           </div>
         </div>
 

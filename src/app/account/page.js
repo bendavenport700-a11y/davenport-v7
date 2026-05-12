@@ -56,6 +56,9 @@ export default function AccountPage() {
   const [eduSaving, setEduSaving] = useState(false);
   const [eduError, setEduError] = useState("");
   const [eduSuccess, setEduSuccess] = useState(false);
+  const [rentals, setRentals] = useState([]);
+  const [returningId, setReturningId] = useState(null);
+  const [returnResult, setReturnResult] = useState({});
   const isMobile = useMobile();
 
   useEffect(() => {
@@ -74,6 +77,7 @@ export default function AccountPage() {
       .catch(() => {});
     fetch("/api/style-profile").then(r=>r.json()).then(d=>{ if(d.style_profile) setStyleProfile(d.style_profile); }).catch(()=>{});
     fetch("/api/student-verify").then(r=>r.json()).then(d=>{ setStudentVerified(d.student_verified ?? false); setEduEmail(d.edu_email ?? ""); }).catch(()=>{});
+    fetch("/api/rentals").then(r=>r.json()).then(d=>{ setRentals(Array.isArray(d) ? d : []); }).catch(()=>{});
   }, [isSignedIn, user?.id]);
 
   const referralLink = referralCode
@@ -91,6 +95,28 @@ export default function AccountPage() {
       setStudentVerified(true); setEduEmail(eduInput); setEduSuccess(true);
     } catch { setEduError("Something went wrong."); }
     finally { setEduSaving(false); }
+  }
+
+  async function handleReturn(orderId) {
+    if (returningId) return;
+    setReturningId(orderId);
+    try {
+      const res = await fetch("/api/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        setRentals(prev => prev.filter(r => r.id !== orderId));
+        setReturnResult(prev => ({ ...prev, [orderId]: d.message }));
+      } else {
+        setReturnResult(prev => ({ ...prev, [orderId]: d.error ?? "Something went wrong." }));
+      }
+    } catch {
+      setReturnResult(prev => ({ ...prev, [orderId]: "Something went wrong." }));
+    }
+    setReturningId(null);
   }
 
   function copyLink() {
@@ -190,6 +216,44 @@ export default function AccountPage() {
         )}
 
         <div style={{ padding:"0 16px", marginTop:16, display:"flex", flexDirection:"column", gap:12 }}>
+
+          {/* My Rentals */}
+          {rentals.length > 0 && (
+            <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"20px 20px" }}>
+              <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:16 }}>My Rentals</h3>
+              <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                {rentals.map(r => (
+                  <div key={r.id} style={{ border:`1px solid ${S.stone}`, padding:"14px 16px" }}>
+                    <div style={{ display:"flex", gap:12, alignItems:"flex-start", marginBottom:10 }}>
+                      <div style={{ width:52, height:52, background:"#f5f3f0", flexShrink:0, overflow:"hidden" }}>
+                        {r.image_url
+                          ? <img src={r.image_url} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"contain" }}/>
+                          : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>👕</div>}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <p style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:S.tan, marginBottom:2 }}>{r.brand}</p>
+                        <p style={{ fontFamily:S.serif, fontSize:16, fontWeight:600, color:S.ink, lineHeight:1.2 }}>{r.name}</p>
+                        <p style={{ fontSize:12, color:S.muted, marginTop:4 }}>${(r.amount / 100).toFixed(2)}/mo</p>
+                        {r.next_billing_date && (
+                          <p style={{ fontSize:11, color:S.muted, marginTop:2 }}>Next billing: {formatDate(r.next_billing_date)}</p>
+                        )}
+                      </div>
+                    </div>
+                    {returnResult[r.id] ? (
+                      <p style={{ fontSize:12, color:"#16a34a", fontWeight:500 }}>{returnResult[r.id]}</p>
+                    ) : (
+                      <button
+                        onClick={() => handleReturn(r.id)}
+                        disabled={returningId === r.id}
+                        style={{ width:"100%", background:"transparent", color:"#dc2626", border:"1px solid #fca5a5", cursor:returningId===r.id?"not-allowed":"pointer", padding:"9px 0", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:returningId===r.id?0.6:1 }}>
+                        {returningId === r.id ? "Processing…" : "Return Item"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Progress toward reward */}
           <div style={{ background:S.ink, padding:"20px 20px", borderRadius:2 }}>
@@ -390,6 +454,44 @@ export default function AccountPage() {
             <p style={{ fontSize:11, color:S.tan, marginTop:10 }}>Your code: <strong style={{ letterSpacing:"0.08em" }}>{referralCode}</strong></p>
           )}
         </div>
+
+        {/* My Rentals */}
+        {rentals.length > 0 && (
+          <div style={{ background:"#fff", border:`1px solid ${S.stone}`, padding:"28px 28px", marginBottom:32 }}>
+            <h3 style={{ fontFamily:S.serif, fontSize:20, fontWeight:600, color:S.ink, marginBottom:20 }}>My Rentals</h3>
+            <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
+              {rentals.map((r, i) => (
+                <div key={r.id} style={{ display:"flex", alignItems:"center", gap:20, padding:"16px 0", borderBottom: i < rentals.length - 1 ? `1px solid ${S.stone}` : "none" }}>
+                  <div style={{ width:60, height:60, background:"#f5f3f0", flexShrink:0, overflow:"hidden" }}>
+                    {r.image_url
+                      ? <img src={r.image_url} alt={r.name} style={{ width:"100%", height:"100%", objectFit:"contain" }}/>
+                      : <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>👕</div>}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <p style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:S.tan, marginBottom:2 }}>{r.brand}</p>
+                    <p style={{ fontFamily:S.serif, fontSize:17, fontWeight:600, color:S.ink }}>{r.name}</p>
+                    {r.next_billing_date && (
+                      <p style={{ fontSize:11, color:S.muted, marginTop:3 }}>Next billing: {formatDate(r.next_billing_date)}</p>
+                    )}
+                  </div>
+                  <div style={{ textAlign:"right", flexShrink:0 }}>
+                    <p style={{ fontFamily:S.serif, fontSize:20, fontWeight:700, color:S.ink, marginBottom:6 }}>${(r.amount / 100).toFixed(2)}<span style={{ fontFamily:S.sans, fontSize:11, color:S.muted, fontWeight:400 }}>/mo</span></p>
+                    {returnResult[r.id] ? (
+                      <p style={{ fontSize:12, color:"#16a34a", fontWeight:500, maxWidth:200, textAlign:"right" }}>{returnResult[r.id]}</p>
+                    ) : (
+                      <button
+                        onClick={() => handleReturn(r.id)}
+                        disabled={returningId === r.id}
+                        style={{ background:"transparent", color:"#dc2626", border:"1px solid #fca5a5", cursor:returningId===r.id?"not-allowed":"pointer", padding:"7px 18px", fontSize:11, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase", opacity:returningId===r.id?0.6:1 }}>
+                        {returningId === r.id ? "Processing…" : "Return Item"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Earn + Redeem tables */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24, marginBottom:32 }}>

@@ -99,6 +99,15 @@ export async function GET() {
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS style_profile JSONB`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS student_verified BOOLEAN DEFAULT false`;
     await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS edu_email TEXT`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`;
+
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`;
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`;
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_subscription_item_id TEXT`;
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_deposit_intent_id TEXT`;
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS next_billing_date TIMESTAMPTZ`;
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ`;
+    await sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS returned_at TIMESTAMPTZ`;
 
     return Response.json({ ok: true, message: "Tables created." });
   } catch (err) {
