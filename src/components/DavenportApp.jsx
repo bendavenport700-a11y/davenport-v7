@@ -203,7 +203,8 @@ const OUTFITS = [
 function Nav({ page, setPage, suitcase }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { isSignedIn } = useUser();
+  const { isSignedIn, user } = useUser();
+  const [userPoints, setUserPoints] = useState(null);
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 900);
@@ -211,6 +212,14 @@ function Nav({ page, setPage, suitcase }) {
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
+
+  useEffect(() => {
+    if (!isSignedIn || !user?.id) { setUserPoints(null); return; }
+    fetch(`/api/points?clerk_id=${user.id}`)
+      .then(r => r.json())
+      .then(d => setUserPoints(d.points ?? 0))
+      .catch(() => {});
+  }, [isSignedIn, user?.id]);
 
   // Close menu on page change
   useEffect(() => { setMenuOpen(false); }, [page]);
@@ -242,7 +251,14 @@ function Nav({ page, setPage, suitcase }) {
               </button>
             ))}
             {isSignedIn ? (
-              <UserButton afterSignOutUrl="/" />
+              <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                {userPoints !== null && (
+                  <a href="/account" style={{ fontFamily:S.sans, fontSize:11, fontWeight:600, color:S.tan, background:"#f0ebe3", border:`1px solid #ddd5c8`, borderRadius:20, padding:"3px 10px", textDecoration:"none", letterSpacing:"0.04em", whiteSpace:"nowrap" }}>
+                    {userPoints} pts
+                  </a>
+                )}
+                <UserButton afterSignOutUrl="/" />
+              </div>
             ) : (
               <SignInButton mode="modal">
                 <button style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"9px 18px",fontFamily:S.sans,fontSize:12,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase" }}>
@@ -293,7 +309,12 @@ function Nav({ page, setPage, suitcase }) {
             {isSignedIn ? (
               <div style={{ marginTop:16,display:"flex",alignItems:"center",gap:12,padding:"8px 0" }}>
                 <UserButton afterSignOutUrl="/" />
-                <span style={{ fontFamily:S.sans,fontSize:12,color:S.muted }}>Account</span>
+                <div>
+                  <a href="/account" style={{ fontFamily:S.sans,fontSize:12,color:S.ink,textDecoration:"none",fontWeight:600 }}>Account</a>
+                  {userPoints !== null && (
+                    <a href="/account" style={{ display:"block",fontFamily:S.sans,fontSize:11,color:S.tan,textDecoration:"none",marginTop:2 }}>{userPoints} pts</a>
+                  )}
+                </div>
               </div>
             ) : (
               <SignInButton mode="modal">
@@ -1532,12 +1553,40 @@ const POSTS = [
 function CommunityPage({ setPage }) {
   const [filter, setFilter] = useState("All");
   const [liked, setLiked] = useState({});
-  const schools = ["All", ...new Set(POSTS.map(p => p.school))];
+  const [showPost, setShowPost] = useState(false);
+  const [caption, setCaption] = useState("");
+  const [postStatus, setPostStatus] = useState(null); // null | "submitting" | "done"
+  const { isSignedIn, user } = useUser();
+  const { openSignIn } = useClerk();
 
+  const schools = ["All", ...new Set(POSTS.map(p => p.school))];
   const filtered = filter === "All" ? POSTS : POSTS.filter(p => p.school === filter);
 
   function toggleLike(id) {
     setLiked(l => ({ ...l, [id]: !l[id] }));
+  }
+
+  function handleShareClick() {
+    if (!isSignedIn) { openSignIn(); return; }
+    setShowPost(true);
+    setCaption("");
+    setPostStatus(null);
+  }
+
+  async function handlePostSubmit(e) {
+    e.preventDefault();
+    if (!caption.trim() || !user?.id) return;
+    setPostStatus("submitting");
+    try {
+      await fetch("/api/points", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clerk_id: user.id, amount: 50, reason: "Community post" }),
+      });
+      setPostStatus("done");
+    } catch {
+      setPostStatus("done");
+    }
   }
 
   return (
@@ -1564,7 +1613,7 @@ function CommunityPage({ setPage }) {
                   @davenportwardrobe
                 </a>
               </div>
-              <button style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"10px 22px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase" }}>
+              <button onClick={handleShareClick} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"10px 22px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.08em", textTransform:"uppercase" }}>
                 + Share Your Look
               </button>
             </div>
@@ -1654,6 +1703,41 @@ function CommunityPage({ setPage }) {
           </div>
         </div>
       </div>
+
+      {/* Share Your Look modal */}
+      {showPost && (
+        <div style={{ position:"fixed", inset:0, zIndex:500, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+          <div style={{ background:"#fff", width:"100%", maxWidth:480, padding:"40px 36px", position:"relative" }}>
+            <button onClick={() => setShowPost(false)} style={{ position:"absolute", top:16, right:16, background:"none", border:"none", cursor:"pointer", fontFamily:S.sans, fontSize:18, color:S.muted, lineHeight:1 }}>✕</button>
+            {postStatus === "done" ? (
+              <div style={{ textAlign:"center", paddingTop:12, paddingBottom:12 }}>
+                <div style={{ fontSize:40, marginBottom:16 }}>🎉</div>
+                <h3 style={{ fontFamily:S.serif, fontSize:28, fontWeight:600, color:S.ink, marginBottom:10 }}>Look submitted!</h3>
+                <p style={{ fontFamily:S.sans, fontSize:14, color:S.muted, marginBottom:6 }}>You earned <strong style={{ color:S.ink }}>50 pts</strong> for sharing your fit.</p>
+                <p style={{ fontFamily:S.sans, fontSize:12, color:S.tan, marginBottom:28 }}>Points added to your account.</p>
+                <button onClick={() => setShowPost(false)} style={{ background:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"12px 32px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>Done</button>
+              </div>
+            ) : (
+              <form onSubmit={handlePostSubmit}>
+                <p style={{ fontFamily:S.sans, fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:S.tan, marginBottom:10, fontWeight:500 }}>Share Your Look</p>
+                <h3 style={{ fontFamily:S.serif, fontSize:26, fontWeight:600, color:S.ink, marginBottom:6 }}>Submit a post</h3>
+                <p style={{ fontFamily:S.sans, fontSize:13, color:S.muted, marginBottom:24, lineHeight:1.7 }}>Share your caption and tag your pieces. Earn <strong>50 pts</strong> instantly.</p>
+                <textarea
+                  value={caption}
+                  onChange={e => setCaption(e.target.value)}
+                  placeholder="Describe your fit — pieces, occasion, vibe..."
+                  rows={4}
+                  required
+                  style={{ width:"100%", padding:"12px 14px", fontFamily:S.sans, fontSize:13, color:S.ink, border:`1px solid ${S.stone}`, resize:"vertical", lineHeight:1.6, marginBottom:20, background:S.cream }}
+                />
+                <button type="submit" disabled={postStatus === "submitting" || !caption.trim()} style={{ width:"100%", background:postStatus==="submitting"?S.muted:S.ink, color:S.cream, border:"none", cursor:"pointer", padding:"14px", fontFamily:S.sans, fontSize:12, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase" }}>
+                  {postStatus === "submitting" ? "Submitting…" : "Submit & Earn 50 pts"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

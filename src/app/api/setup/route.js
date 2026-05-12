@@ -30,6 +30,18 @@ export async function GET() {
     `;
 
     await sql`ALTER TABLE inventory ADD COLUMN IF NOT EXISTS rent_price INTEGER DEFAULT 0`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0`;
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT`;
+
+    await sql`
+      CREATE TABLE IF NOT EXISTS points_history (
+        id SERIAL PRIMARY KEY,
+        clerk_id TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        reason TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
 
     await sql`
       CREATE TABLE IF NOT EXISTS orders (
