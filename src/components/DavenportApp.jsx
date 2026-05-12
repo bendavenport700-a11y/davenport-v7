@@ -350,7 +350,7 @@ function MiniItemCard({ item, setPage }) {
       <div style={{ padding:"16px 16px 20px" }}>
         <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:S.tan,marginBottom:4 }}>{item.brand}</p>
         <h3 style={{ fontFamily:S.serif,fontSize:17,fontWeight:600,color:S.ink,marginBottom:8,lineHeight:1.2 }}>{item.name}</h3>
-        <span style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
+        <span style={{ fontFamily:S.serif,fontSize:20,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></span>
         <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:4 }}>Buy outright: ${getBuyPrice(item)}</p>
       </div>
     </div>
@@ -696,7 +696,7 @@ function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, onCardClick, d
         <h3 style={{ fontFamily:S.serif, fontSize:24, fontWeight:600, color:nameColor, marginBottom:6 }}>{w.name}</h3>
         <p style={{ fontFamily:S.sans, fontSize:12, color:taglineColor, lineHeight:1.65, marginBottom:16 }}>{w.tagline}</p>
         <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
-          <span style={{ fontFamily:S.serif, fontSize:24, fontWeight:700, color:priceColor }}>${monthlySum}</span>
+          <span style={{ fontFamily:S.serif, fontSize:24, fontWeight:700, color:priceColor }}>${(Math.round(monthlySum*100)/100).toFixed(2)}</span>
           <span style={{ fontFamily:S.sans, fontSize:10, color:taglineColor }}>/mo</span>
         </div>
       </div>
@@ -998,7 +998,7 @@ function WardrobeDetailPage({ wardrobeId, setPage, addToSuitcase, suitcase }) {
                       <p style={{ fontFamily:S.sans,fontSize:8,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:3 }}>{p.brand}</p>
                       <p style={{ fontFamily:S.serif,fontSize:15,fontWeight:600,color:S.ink,marginBottom:6,lineHeight:1.2 }}>{p.name}</p>
                       <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
-                        <span style={{ fontFamily:S.serif,fontSize:17,fontWeight:700,color:S.ink }}>${getMonthlyPrice(p)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
+                        <span style={{ fontFamily:S.serif,fontSize:17,fontWeight:700,color:S.ink }}>${getMonthlyPrice(p).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
                         <button onClick={()=>addToSuitcase(p)} style={{ background:inSuitcase?"#f0ede8":S.ink,color:inSuitcase?"#6b5e4e":S.cream,border:"none",cursor:inSuitcase?"default":"pointer",padding:"4px 10px",fontFamily:S.sans,fontSize:9,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase" }}>
                           {inSuitcase?"✓":"+ Add"}
                         </button>
@@ -1217,7 +1217,7 @@ function ItemCard({ item, setPage, addToSuitcase, inSuitcase, onBuy, isMobile=fa
           <p style={{ fontFamily:S.sans,fontSize:9,letterSpacing:"0.12em",textTransform:"uppercase",color:S.tan,marginBottom:2 }}>{item.brand}</p>
           <h3 style={{ fontFamily:S.serif,fontSize: isMobile ? 13 : 16,fontWeight:600,color:S.ink,marginBottom: isMobile ? 4 : 6,lineHeight:1.2 }}>{item.name}</h3>
           <div>
-            <span style={{ fontFamily:S.serif,fontSize: isMobile ? 17 : 21,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
+            <span style={{ fontFamily:S.serif,fontSize: isMobile ? 17 : 21,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:9,color:S.muted }}>/mo</span></span>
             {!isMobile && <p style={{ fontFamily:S.sans,fontSize:9,color:S.muted,marginTop:3 }}>Buy outright: ${getBuyPrice(item)}</p>}
           </div>
         </div>
@@ -1260,7 +1260,7 @@ function ItemDetailPage({ itemId, setPage, addToSuitcase, suitcase, items, onBuy
               <div style={{ padding:"20px 22px",background:S.ink,marginBottom:10 }}>
                 <p style={{ fontFamily:S.sans,fontSize:10,letterSpacing:"0.14em",textTransform:"uppercase",color:"#9ca3af",marginBottom:6 }}>Monthly rental</p>
                 <div style={{ display:"flex",alignItems:"baseline",gap:4 }}>
-                  <span style={{ fontFamily:S.serif,fontSize:38,fontWeight:700,color:S.cream }}>${monthlyPrice}</span>
+                  <span style={{ fontFamily:S.serif,fontSize:38,fontWeight:700,color:S.cream }}>${monthlyPrice.toFixed(2)}</span>
                   <span style={{ fontFamily:S.sans,fontSize:12,color:"#9ca3af" }}>/mo</span>
                 </div>
               </div>
@@ -1480,7 +1480,7 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
                     <h3 style={{ fontFamily:S.serif,fontSize:19,fontWeight:600,color:S.ink }}>{item.name}</h3>
                   </div>
                   <div style={{ textAlign:"right",flexShrink:0 }}>
-                    <div style={{ fontFamily:S.serif,fontSize:22,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></div>
+                    <div style={{ fontFamily:S.serif,fontSize:22,fontWeight:700,color:S.ink }}>${getMonthlyPrice(item).toFixed(2)}<span style={{ fontFamily:S.sans,fontSize:10,color:S.muted }}>/mo</span></div>
                   </div>
                 </div>
                 {/* Action row */}
@@ -1500,14 +1500,14 @@ function SuitcasePage({ suitcase, removeFromSuitcase, setPage, items }) {
               {suitcase.map(item=>(
                 <div key={item.id} style={{ display:"flex",justifyContent:"space-between" }}>
                   <span style={{ fontFamily:S.sans,fontSize:12,color:"#9ca3af" }}>{item.name}</span>
-                  <span style={{ fontFamily:S.sans,fontSize:12,color:S.cream }}>${getMonthlyPrice(item)}</span>
+                  <span style={{ fontFamily:S.sans,fontSize:12,color:S.cream }}>${getMonthlyPrice(item).toFixed(2)}</span>
                 </div>
               ))}
             </div>
             <div style={{ borderTop:"1px solid #1f2937",paddingTop:20,marginBottom:28 }}>
               <div style={{ display:"flex",justifyContent:"space-between",alignItems:"baseline" }}>
                 <span style={{ fontFamily:S.sans,fontSize:14,fontWeight:600,color:S.cream }}>Total / month</span>
-                <span style={{ fontFamily:S.serif,fontSize:30,fontWeight:700,color:S.cream }}>${total}</span>
+                <span style={{ fontFamily:S.serif,fontSize:30,fontWeight:700,color:S.cream }}>${(Math.round(total*100)/100).toFixed(2)}</span>
               </div>
             </div>
             <button style={{ width:"100%",background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"14px",fontFamily:S.sans,fontSize:13,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:12 }}>
