@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
+import { SignInButton, UserButton, useUser, useClerk } from "@clerk/nextjs";
 
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');`;
 
@@ -216,8 +216,8 @@ function Nav({ page, setPage, suitcase }) {
   useEffect(() => { setMenuOpen(false); }, [page]);
 
   const navLinks = [
-    ["browse","Shop Pieces"],
     ["wardrobes","Shop Wardrobes"],
+    ["browse","Shop Pieces"],
     ["quiz","Find My Style"],
     ["community","Community"],
     ["sustainability","Our Mission"],
@@ -354,8 +354,8 @@ function HomePage({ setPage }) {
           </p>
           <p style={{ fontFamily:S.sans,fontSize:13,color:S.tan,marginBottom:44,fontStyle:"italic" }}>Discover. Wear. Own.</p>
           <div style={{ display:"flex",gap:14,flexWrap:"wrap" }}>
-            <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Shop Pieces</button>
             <button onClick={()=>setPage("wardrobes")} style={{ background:S.gold,color:S.ink,border:"none",cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Shop Wardrobes</button>
+            <button onClick={()=>setPage("browse")} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Shop Pieces</button>
             <button onClick={()=>setPage("quiz")} style={{ background:"transparent",color:S.ink,border:`1px solid #c9bfb0`,cursor:"pointer",padding:"15px 36px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>Find My Style</button>
           </div>
         </div>
@@ -598,7 +598,7 @@ function HomePage({ setPage }) {
 
 // ─── BROWSE ───────────────────────────────────────────────────────────────────
 // ─── WARDROBE CARD ────────────────────────────────────────────────────────────
-function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, dark=false }) {
+function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, onCardClick, dark=false }) {
   const [slideIndex, setSlideIndex] = useState(0);
   const [transitioning, setTransitioning] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -624,7 +624,7 @@ function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, dark=false }) 
 
   return (
     <div
-      onClick={() => setPage(`wardrobe-${w.id}`)}
+      onClick={() => onCardClick ? onCardClick(w.id) : setPage(`wardrobe-${w.id}`)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{ cursor:"pointer", background:bg, border:`1px solid ${hovered?(dark?"#4b5563":S.tan):border}`, overflow:"hidden", transition:"border-color 0.25s, transform 0.25s, box-shadow 0.25s", transform:hovered?"translateY(-4px)":"none", boxShadow:hovered?"0 16px 48px rgba(0,0,0,0.12)":"none" }}
@@ -667,8 +667,20 @@ function WardrobeCard({ wardrobe: w, pieces, monthlySum, setPage, dark=false }) 
 // ─── WARDROBES PAGE ───────────────────────────────────────────────────────────
 function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
   const [seasonFilter, setSeasonFilter] = useState("All");
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
   const seasons = ["All","Fall/Winter","Spring/Summer"];
   const filtered = seasonFilter==="All" ? WARDROBES : WARDROBES.filter(w=>w.season===seasonFilter);
+
+  function handleCardClick(wardrobeId) {
+    if (isSignedIn) setPage(`wardrobe-${wardrobeId}`);
+    else openSignIn();
+  }
+
+  function handleFindMyStyle() {
+    if (isSignedIn) setPage("quiz");
+    else openSignIn();
+  }
 
   return (
     <div style={{ paddingTop:60,minHeight:"100vh",background:S.cream }}>
@@ -684,13 +696,21 @@ function WardrobesPage({ setPage, addToSuitcase, suitcase }) {
           </div>
         </div>
       </div>
-      <div style={{ maxWidth:1080,margin:"0 auto",padding:"40px 40px 80px" }}>
+      <div style={{ maxWidth:1080,margin:"0 auto",padding:"40px 40px 64px" }}>
         <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:28 }}>
           {filtered.map(w=>{
             const pieces=w.itemIds.map(id=>STATIC_ITEMS.find(i=>i.id===id)).filter(Boolean);
             const monthlySum=pieces.reduce((s,p)=>s+getMonthlyPrice(p),0);
-            return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage}/>;
+            return <WardrobeCard key={w.id} wardrobe={w} pieces={pieces} monthlySum={monthlySum} setPage={setPage} onCardClick={handleCardClick}/>;
           })}
+        </div>
+        <div style={{ marginTop:56,textAlign:"center",borderTop:`1px solid ${S.stone}`,paddingTop:52 }}>
+          <p style={{ fontFamily:S.sans,fontSize:11,letterSpacing:"0.2em",textTransform:"uppercase",color:S.tan,marginBottom:12 }}>Not sure where to start?</p>
+          <h2 style={{ fontFamily:S.serif,fontSize:36,fontWeight:600,color:S.ink,letterSpacing:"-0.5px",marginBottom:14 }}>Find your style in 2 minutes.</h2>
+          <p style={{ fontFamily:S.sans,fontSize:15,color:S.muted,marginBottom:32,maxWidth:420,margin:"0 auto 32px" }}>Swipe through aesthetics and we'll match you to the wardrobes that fit who you want to be.</p>
+          <button onClick={handleFindMyStyle} style={{ background:S.ink,color:S.cream,border:"none",cursor:"pointer",padding:"14px 40px",fontFamily:S.sans,fontSize:13,fontWeight:600,letterSpacing:"0.1em",textTransform:"uppercase" }}>
+            Find My Style
+          </button>
         </div>
       </div>
     </div>
