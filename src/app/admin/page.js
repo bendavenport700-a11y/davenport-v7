@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_EMAIL = "benjamindavenport700@gmail.com";
 
 const S = {

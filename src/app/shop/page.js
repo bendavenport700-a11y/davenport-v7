@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
+export const dynamic = "force-dynamic";
+
 const S = {
   serif: "'Cormorant Garamond', Georgia, serif",
   sans: "'Outfit', system-ui, sans-serif",
